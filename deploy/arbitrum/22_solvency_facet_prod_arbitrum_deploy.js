@@ -13,7 +13,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     let SolvencyFacetProdArbitrum = await deploy("SolvencyFacetProdArbitrum", {
         from: deployer,
-        gasLimit: 50000000,
         args: [],
     });
 

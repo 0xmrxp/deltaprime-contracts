@@ -125,6 +125,12 @@ library DiamondStorageLib {
     struct LiquidationSnapshotStorage {
         uint256 lastInsolventTimestamp;
         uint256 healthRatioSnapshot;
+        /// @dev dollar-denominated (18 decimals) debt value captured when snapshotInsolvency() is called.
+        /// Used as the denominator when enforcing the cumulative pre-liquidation slippage budget.
+        uint256 debtSnapshotDollars;
+        /// @dev dollar-denominated (18 decimals) cumulative slippage loss across pre-liquidation swaps.
+        /// Enforced against `debtSnapshotDollars * MAX_CUMULATIVE_LOSS_BPS / 10_000`.
+        uint256 cumulativeLossDollars;
     }
 
     struct ReentrancyGuardStorage {
@@ -181,6 +187,23 @@ library DiamondStorageLib {
             longTokenPriceUsd: params.longTokenPriceUsd,
             shortTokenPriceUsd: params.shortTokenPriceUsd
         });
+    }
+
+    /**
+     * @notice Scales the underlying-token amounts of an existing benchmark by a fraction
+     *         `numerator / denominator`, to keep the per-GM cost basis intact while
+     *         removing the share of a position that was just realized as fee.
+     * @dev    Only the two `underlying*TokenAmount` fields are touched: those are the ones
+     *         read by the fee math and by the solvency-side fee deduction in
+     *         `SolvencyFacetProd`. `benchmarkValueUsd` is never read in the fee path (only
+     *         emitted for off-chain observability), so leaving it alone trims bytecode at
+     *         every consuming facet without affecting fee math.
+     */
+    function scaleGmxPositionBenchmark(address market, uint256 numerator, uint256 denominator) internal {
+        GmxPositionStorage storage gps = gmxPositionStorage();
+        GmxPositionBenchmark storage b = gps.positionBenchmarks[market];
+        b.underlyingLongTokenAmount  = (b.underlyingLongTokenAmount  * numerator) / denominator;
+        b.underlyingShortTokenAmount = (b.underlyingShortTokenAmount * numerator) / denominator;
     }
 
     function getGmxPositionBenchmark(address market) internal view returns (GmxPositionBenchmark memory benchmark) {

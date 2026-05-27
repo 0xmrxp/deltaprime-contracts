@@ -34,7 +34,9 @@ library DeploymentConstants {
 
     address private constant _GMX_DATA_STORE_ADDRESS = 0x2F0b22339414ADeD7D5F06f9D604c7fF5b2fe3f6;
     
-    address private constant _GMX_READER_ADDRESS = 0x1EC018d2b6ACCA20a0bEDb86450b7E27D1D8355B;
+    address private constant _GMX_READER_ADDRESS = 0x62Cb8740E6986B29dC671B2EB596676f60590A5B;
+
+    address private constant _GLV_READER_ADDRESS = 0x5C6905A3002f989E1625910ba1793d40a031f947;
 
     //implementation-specific
 
@@ -58,6 +60,10 @@ library DeploymentConstants {
     
     function getGmxReaderAddress() internal pure returns (address) {
         return _GMX_READER_ADDRESS;
+    }
+
+    function getGlvReaderAddress() internal pure returns (address) {
+        return _GLV_READER_ADDRESS;
     }
 
     //deployment-specific

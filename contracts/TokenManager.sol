@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: cc89474c960bad83ebf009a447365d5b50e193ae;
+// Last deployed from commit: 8bb1bbce4ca086a317fdb2d35d3df26db87d96fe;
 pragma solidity 0.8.17;
 
 import "./lib/Bytes32EnumerableMap.sol";
@@ -47,6 +47,8 @@ contract TokenManager is OwnableUpgradeable {
 
     bytes32 constant GMX_MARKETS_WHITELISTED_MAPPING_SLOT = keccak256("gmx.markets.whitelisted.mapping.storage");
     bytes32 constant GMX_MARKETS_PLUS_MAPPING_SLOT = keccak256("gmx.markets.plus.mapping.storage");
+    bytes32 constant GMX_MARKETS_GLV_MAPPING_SLOT = keccak256("gmx.markets.glv.mapping.storage");
+    bytes32 constant CHAINLINK_FEEDS_MAPPING_SLOT = keccak256("chainlink.feeds.mapping.storage");
 
     using EnumerableMap for EnumerableMap.Bytes32ToAddressMap;
 
@@ -411,6 +413,15 @@ contract TokenManager is OwnableUpgradeable {
         tokenToStatus[tokenAddress] = _NOT_SUPPORTED;
         debtCoverage[tokenAddress] = 0;
 
+        // Clear staked debt coverage
+        debtCoverageStaked[_tokenAsset] = 0;
+
+        // Clear tiered debt coverages for all tiers
+        tieredDebtCoverage[LeverageTierLib.LeverageTier.BASIC][tokenAddress] = 0;
+        tieredDebtCoverage[LeverageTierLib.LeverageTier.PREMIUM][tokenAddress] = 0;
+        tieredDebtCoverageStaked[LeverageTierLib.LeverageTier.BASIC][_tokenAsset] = 0;
+        tieredDebtCoverageStaked[LeverageTierLib.LeverageTier.PREMIUM][_tokenAsset] = 0;
+
         // Clear exposure group mapping for this asset
         identifierToExposureGroup[_tokenAsset] = bytes32(0);
 
@@ -541,6 +552,27 @@ contract TokenManager is OwnableUpgradeable {
     }
 
     /**
+    * @notice Set GLV token configuration (whitelisted status)
+    * @dev Updates the whitelisted status of a GLV token in the TokenManager.
+    * @param glvToken The GLV token address to configure
+    * @param isWhitelisted Whether the GLV token should be whitelisted (true) or removed from whitelist (false)
+    */
+    function setGlvTokenWhitelisting(address glvToken, bool isWhitelisted) external onlyOwner {
+        require(glvToken != address(0), "Invalid GLV token address");
+        
+        // Get previous values for events
+        bool prevWhitelisted = DynamicSlotMapping.getBool(GMX_MARKETS_GLV_MAPPING_SLOT, glvToken);
+        
+        DynamicSlotMapping.setBool(GMX_MARKETS_GLV_MAPPING_SLOT, glvToken, isWhitelisted);
+        
+        emit GlvTokenConfigured(msg.sender, glvToken, prevWhitelisted, isWhitelisted, block.timestamp);
+    }
+
+    function isGlvTokenWhitelisted(address glvToken) public view returns (bool) {
+        return DynamicSlotMapping.getBool(GMX_MARKETS_GLV_MAPPING_SLOT, glvToken);
+    }
+
+    /**
     * @notice Check if GMX market is whitelisted
     * @param gmxMarket The GMX market address
     * @return True if the market is whitelisted
@@ -556,6 +588,25 @@ contract TokenManager is OwnableUpgradeable {
     */
     function isGmxPlusMarket(address gmxMarket) public view returns (bool) {
         return DynamicSlotMapping.getBool(GMX_MARKETS_PLUS_MAPPING_SLOT, gmxMarket);
+    }
+
+
+    /// @notice Sets the Chainlink price feed address for a specific token
+    /// @dev Stores the feed address in a dynamic storage slot mapping. Only callable by the contract owner
+    /// @param token The address of the token for which to set the Chainlink feed
+    /// @param feed The address of the Chainlink price feed contract
+    function setChainlinkFeed(address token, address feed) external onlyOwner {
+        require(token != address(0), "Invalid token address");
+        DynamicSlotMapping.setAddress(CHAINLINK_FEEDS_MAPPING_SLOT, token, feed);
+        emit ChainLinkFeedSet(msg.sender, token, feed, block.timestamp);
+    }
+
+    /// @notice Retrieves the Chainlink price feed address for a specific token
+    /// @dev Reads from the dynamic storage slot mapping
+    /// @param token The address of the token for which to retrieve the Chainlink feed
+    /// @return The address of the Chainlink price feed contract, or address(0) if not set
+    function getChainlinkFeed(address token) external view returns (address) {
+        return DynamicSlotMapping.getAddress(CHAINLINK_FEEDS_MAPPING_SLOT, token);
     }
 
     function isExposureAvailable(bytes32 assetIdentifier) internal view returns(bool) {
@@ -774,6 +825,21 @@ contract TokenManager is OwnableUpgradeable {
     event UnsupportedWithdrawalAssetRemoved(
         address indexed performer,
         address indexed asset,
+        uint256 timestamp
+    );
+
+    event GlvTokenConfigured(
+        address indexed performer,
+        address indexed glvToken,
+        bool prevWhitelisted,
+        bool newWhitelisted,
+        uint256 timestamp
+    );
+
+    event ChainLinkFeedSet(
+        address indexed performer,
+        address indexed token,
+        address indexed feed,
         uint256 timestamp
     );
 }

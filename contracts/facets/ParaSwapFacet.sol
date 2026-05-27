@@ -5,15 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../ReentrancyGuardKeccak.sol";
 import "../lib/DiamondStorageLib.sol";
-import "../lib/SolvencyMethods.sol";
+import "../lib/DiamondMethodsAccess.sol";
 import "./SmartLoanLiquidationFacet.sol";
 import "../interfaces/ITokenManager.sol";
 import "../interfaces/facets/avalanche/IParaSwapFacet.sol";
 import "../lib/local/DeploymentConstants.sol";
 import {ParaSwapHelper} from "../lib/ParaSwapHelper.sol";
+import "../PrimeAccountModifiers.sol";
 
 
-contract ParaSwapFacet is ReentrancyGuardKeccak, ParaSwapHelper {
+contract ParaSwapFacet is ReentrancyGuardKeccak, ParaSwapHelper, PrimeAccountModifiers {
     
     function paraSwapBeforeLiquidation(
         bytes4 selector,
@@ -39,23 +40,12 @@ contract ParaSwapFacet is ReentrancyGuardKeccak, ParaSwapHelper {
 
         validateSwapParameters(paraSwapDecodedData, false);
 
-
-
-
-    SwapTokensDetails memory details = getInitialTokensDetails(
-            paraSwapDecodedData.srcToken,
-            paraSwapDecodedData.destToken
-        );
+        SwapTokensDetails memory details = getInitialTokensDetails(
+                paraSwapDecodedData.srcToken,
+                paraSwapDecodedData.destToken
+            );
         
-
-
         executeSwap(selector, data, details, paraSwapDecodedData, false);
 
-    }
-
-    
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 }

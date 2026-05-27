@@ -1,0 +1,3944 @@
+{
+  "service": {
+    "service": "deltaprime-cloud",
+    "serviceObject": {
+      "name": "deltaprime-cloud"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs20.x",
+      "stage": "prod",
+      "region": "us-east-1",
+      "httpApi": {
+        "cors": {
+          "allowedOrigins": [
+            "*"
+          ],
+          "allowedHeaders": [
+            "Content-Type",
+            "X-Amz-Date",
+            "Authorization",
+            "X-Api-Key",
+            "X-Amz-Security-Token",
+            "X-Amz-User-Agent"
+          ],
+          "allowedMethods": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS"
+          ]
+        }
+      },
+      "environment": {
+        "APY_TABLE": "apys-prod",
+        "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+        "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+        "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+        "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+        "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+        "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+        "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+        "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+        "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+        "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+        "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+        "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:BatchWriteItem"
+          ],
+          "Resource": "*"
+        }
+      ],
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "GmxIncentivesCalculatorArbQALogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-gmxIncentivesCalculatorArbQA"
+            }
+          },
+          "GetGmxIncentivesApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getGmxIncentivesApi"
+            }
+          },
+          "GetGmxIncentivesHistoryApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getGmxIncentivesHistoryApi"
+            }
+          },
+          "GetLoanSnapshotsApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getLoanSnapshotsApi"
+            }
+          },
+          "LoanStatsAggregatorAvaLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-loanStatsAggregatorAva"
+            }
+          },
+          "LoanStatsAggregatorArbLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-loanStatsAggregatorArb"
+            }
+          },
+          "GlpAprAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-glpAprAggregator"
+            }
+          },
+          "LpAndFarmApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-lpAndFarmApyAggregator"
+            }
+          },
+          "TraderJoeApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-traderJoeApyAggregator"
+            }
+          },
+          "AerodromeApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-aerodromeApyAggregator"
+            }
+          },
+          "GlvApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-glvApyAggregator"
+            }
+          },
+          "SJOEApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-sJOEApyAggregator"
+            }
+          },
+          "BeefyApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-beefyApyAggregator"
+            }
+          },
+          "GmxApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-gmxApyAggregator"
+            }
+          },
+          "BalancerTvlAndApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-balancerTvlAndApyAggregator"
+            }
+          },
+          "AssetStakingApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-assetStakingApyAggregator"
+            }
+          },
+          "GmOpenInterestAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-gmOpenInterestAggregator"
+            }
+          },
+          "PendleTvlAndApyAggregatorLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-pendleTvlAndApyAggregator"
+            }
+          },
+          "AssetApyApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-assetApyApi"
+            }
+          },
+          "GetRewardsInfoApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getRewardsInfoApi"
+            }
+          },
+          "GetGmOpenInterestsApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getGmOpenInterestsApi"
+            }
+          },
+          "GetLoanStatsApiLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/deltaprime-cloud-prod-getLoanStatsApi"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "deltaprime-cloud",
+                        "prod",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/deltaprime-cloud-prod*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/deltaprime-cloud-prod*:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][0]"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "deltaprime-cloud",
+                    "prod",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "GmxIncentivesCalculatorArbQALambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-gmxIncentivesCalculatorArbQA.zip"
+              },
+              "Handler": "gmxIncentives/gmxIncentivesCalculatorArbQA.handler",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-gmxIncentivesCalculatorArbQA",
+              "MemorySize": 1024,
+              "Timeout": 900,
+              "Description": "Calculate GMX incentives for leveraged GM positions on Arbitrum QA.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GmxIncentivesCalculatorArbQALogGroup"
+            ]
+          },
+          "GetGmxIncentivesApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getGmxIncentivesApi.zip"
+              },
+              "Handler": "apis/gmxIncentives.getGmxIncentivesApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getGmxIncentivesApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Get GMX incentives for a loan",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetGmxIncentivesApiLogGroup"
+            ]
+          },
+          "GetGmxIncentivesHistoryApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getGmxIncentivesHistoryApi.zip"
+              },
+              "Handler": "apis/gmxIncentives.getGmxIncentivesHistoryApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getGmxIncentivesHistoryApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Get GMX incentives run history",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetGmxIncentivesHistoryApiLogGroup"
+            ]
+          },
+          "GetLoanSnapshotsApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getLoanSnapshotsApi.zip"
+              },
+              "Handler": "apis/gmxIncentives.getLoanSnapshotsApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getLoanSnapshotsApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Get historical snapshots for a specific loan",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetLoanSnapshotsApiLogGroup"
+            ]
+          },
+          "LoanStatsAggregatorAvaLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-loanStatsAggregatorAva.zip"
+              },
+              "Handler": "loanStats/loanStatsAggregatorAva.handler",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-loanStatsAggregatorAva",
+              "MemorySize": 1024,
+              "Timeout": 900,
+              "Description": "Aggregate loan statistics for all Prime Accounts on Avalanche network",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LoanStatsAggregatorAvaLogGroup"
+            ]
+          },
+          "LoanStatsAggregatorArbLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-loanStatsAggregatorArb.zip"
+              },
+              "Handler": "loanStats/loanStatsAggregatorArb.handler",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-loanStatsAggregatorArb",
+              "MemorySize": 1024,
+              "Timeout": 900,
+              "Description": "Aggregate loan statistics for all Prime Accounts on Arbitrum network",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LoanStatsAggregatorArbLogGroup"
+            ]
+          },
+          "GlpAprAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-glpAprAggregator.zip"
+              },
+              "Handler": "aggregators/apy.glpAprAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-glpAprAggregator",
+              "MemorySize": 3008,
+              "Timeout": 300,
+              "Description": "Fetch GLP Apr from GMX website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GlpAprAggregatorLogGroup"
+            ]
+          },
+          "LpAndFarmApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-lpAndFarmApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.lpAndFarmApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-lpAndFarmApyAggregator",
+              "MemorySize": 256,
+              "Timeout": 120,
+              "Description": "Fetch LP and Farm APYs from Pangolin and TraderJoe V1",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LpAndFarmApyAggregatorLogGroup"
+            ]
+          },
+          "TraderJoeApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-traderJoeApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.traderJoeApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-traderJoeApyAggregator",
+              "MemorySize": 1300,
+              "Timeout": 900,
+              "Description": "Fetch APYs from TraderJoe website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "TraderJoeApyAggregatorLogGroup"
+            ]
+          },
+          "AerodromeApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-aerodromeApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.aerodromeApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-aerodromeApyAggregator",
+              "MemorySize": 2500,
+              "Timeout": 900,
+              "Description": "Fetch APYs from Aerodrome website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "AerodromeApyAggregatorLogGroup"
+            ]
+          },
+          "GlvApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-glvApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.glvApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-glvApyAggregator",
+              "MemorySize": 2500,
+              "Timeout": 900,
+              "Description": "Fetch APYs from GMX website for GLV Pools.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GlvApyAggregatorLogGroup"
+            ]
+          },
+          "SJOEApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-sJOEApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.sJOEApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-sJOEApyAggregator",
+              "MemorySize": 256,
+              "Timeout": 900,
+              "Description": "Fetch APYs from LFJ website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "SJOEApyAggregatorLogGroup"
+            ]
+          },
+          "BeefyApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-beefyApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.beefyApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-beefyApyAggregator",
+              "MemorySize": 3008,
+              "Timeout": 300,
+              "Description": "Fetch APYs from Beefy website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "BeefyApyAggregatorLogGroup"
+            ]
+          },
+          "GmxApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-gmxApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.gmxApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-gmxApyAggregator",
+              "MemorySize": 3008,
+              "Timeout": 300,
+              "Description": "Fetch GM token APYs from GMX website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GmxApyAggregatorLogGroup"
+            ]
+          },
+          "BalancerTvlAndApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-balancerTvlAndApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.balancerTvlAndApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-balancerTvlAndApyAggregator",
+              "MemorySize": 3008,
+              "Timeout": 300,
+              "Description": "Fetch pool APYs from Balancer website.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "BalancerTvlAndApyAggregatorLogGroup"
+            ]
+          },
+          "AssetStakingApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-assetStakingApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.assetStakingApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-assetStakingApyAggregator",
+              "MemorySize": 256,
+              "Timeout": 300,
+              "Description": "Fetch staking APYs of various assets.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "AssetStakingApyAggregatorLogGroup"
+            ]
+          },
+          "GmOpenInterestAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-gmOpenInterestAggregator.zip"
+              },
+              "Handler": "gmOpenInterest/gmOpenInterestAggregator.handler",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-gmOpenInterestAggregator",
+              "MemorySize": 1024,
+              "Timeout": 300,
+              "Description": "fetch Open Interests of GM pool.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GmOpenInterestAggregatorLogGroup"
+            ]
+          },
+          "PendleTvlAndApyAggregatorLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-pendleTvlAndApyAggregator.zip"
+              },
+              "Handler": "aggregators/apy.pendleTvlAndApyAggregator",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-pendleTvlAndApyAggregator",
+              "MemorySize": 3008,
+              "Timeout": 300,
+              "Description": "fetch TVLs and APYs of Pendle pools.",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "PendleTvlAndApyAggregatorLogGroup"
+            ]
+          },
+          "AssetApyApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-assetApyApi.zip"
+              },
+              "Handler": "apis/apy.assetApyApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-assetApyApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Fetch APYS of all assets and farms",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "AssetApyApiLogGroup"
+            ]
+          },
+          "GetRewardsInfoApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getRewardsInfoApi.zip"
+              },
+              "Handler": "apis/traderJoe.getRewardsInfoApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getRewardsInfoApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Fetch claimable rewards and user proofs from TraderJoe V2 pool",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetRewardsInfoApiLogGroup"
+            ]
+          },
+          "GetGmOpenInterestsApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getGmOpenInterestsApi.zip"
+              },
+              "Handler": "apis/gmOpenInterests.getGmOpenInterestsApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getGmOpenInterestsApi",
+              "MemorySize": 3008,
+              "Timeout": 20,
+              "Description": "Fetch Open Interest of GM pools",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetGmOpenInterestsApiLogGroup"
+            ]
+          },
+          "GetLoanStatsApiLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+                "S3Key": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z/deltaprime-cloud-getLoanStatsApi.zip"
+              },
+              "Handler": "apis/loanStats.getLoanStatsApi",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "deltaprime-cloud-prod-getLoanStatsApi",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Description": "Get Loan stats for the period",
+              "Environment": {
+                "Variables": {
+                  "APY_TABLE": "apys-prod",
+                  "GM_OPEN_INTEREST_TABLE": "gm-open-interest-prod",
+                  "LOAN_STATS_AVA_TABLE": "loan-stats-ava-prod",
+                  "LOAN_STATS_ARB_TABLE": "loan-stats-arb-prod",
+                  "GMX_INCENTIVES_AVA_TABLE": "gmx-incentives-ava-prod",
+                  "GMX_INCENTIVES_ARB_TABLE": "gmx-incentives-arb-prod",
+                  "GMX_INCENTIVES_ARB_QA_TABLE": "gmx-incentives-arb-qa-prod",
+                  "GMX_INCENTIVES_RUN_HISTORY_TABLE": "gmx-incentives-run-history-prod",
+                  "GMX_INCENTIVES_LOAN_SNAPSHOTS_TABLE": "gmx-incentives-loan-snapshots-prod",
+                  "TJ_API_KEY": "k7JGKRhWIVliD9q0wZOcUUQYHy3d0zU1qwZb",
+                  "subgraphAPIKey": "aad28f571d33409fa8abb867c382b9f4",
+                  "HEALTHCHECK_AVA": "6d02471c-98e3-4c8a-811f-dd6392c0110a",
+                  "HEALTHCHECK_ARB": "065cf7e8-7765-49b9-a613-c0648e060af9",
+                  "NODE_OPTIONS": "--enable-source-maps"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetLoanStatsApiLogGroup"
+            ]
+          },
+          "GetRewardsInfoApiLambdaVersion6rjFbYcRGmEwtO95FImpvvyo3OqiLcpd1sN5ukzmI8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetRewardsInfoApiLambdaFunction"
+              },
+              "CodeSha256": "yFmTE0vfqIeXDZdax5/Z/8Ce0laotBt04sfKst5n7fw=",
+              "Description": "Fetch claimable rewards and user proofs from TraderJoe V2 pool"
+            }
+          },
+          "GetGmxIncentivesHistoryApiLambdaVersionqdy9elcbbEw303KIvyhkBGLEnyar3gkhhWzLM1u0Srk": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetGmxIncentivesHistoryApiLambdaFunction"
+              },
+              "CodeSha256": "u4FypXFUYFxnHSHK/DLS3/Nfitc0ec+aDCmU473jPYE=",
+              "Description": "Get GMX incentives run history"
+            }
+          },
+          "GmxIncentivesCalculatorArbQALambdaVersionUSJ2OQp6xeI2mcV7q3jXWfWERvqJpC5Gt0UmmwUq4g": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GmxIncentivesCalculatorArbQALambdaFunction"
+              },
+              "CodeSha256": "HS1zi6Y/yhXPnGXIKgtGS3STy7xOZ7fd61MUJCxYQc8=",
+              "Description": "Calculate GMX incentives for leveraged GM positions on Arbitrum QA."
+            }
+          },
+          "LoanStatsAggregatorAvaLambdaVersion18yHFvRzmVZZLphAhKjFUe4IR1Mg3zao3HbdFfKW0o": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LoanStatsAggregatorAvaLambdaFunction"
+              },
+              "CodeSha256": "hwlkEGA2MFQaQvfKGQN7uakV0d/l5wQ/EX9Yd44LTUQ=",
+              "Description": "Aggregate loan statistics for all Prime Accounts on Avalanche network"
+            }
+          },
+          "AssetApyApiLambdaVersion87OKYfXbaa7pSNjVRUsfQgMyRrRk4Eq9KP7bviIWJY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "AssetApyApiLambdaFunction"
+              },
+              "CodeSha256": "oBKbSX2+geolx4RcYEs/VFcPB2u3r3bnBM5Ng0D4UeI=",
+              "Description": "Fetch APYS of all assets and farms"
+            }
+          },
+          "GmOpenInterestAggregatorLambdaVersionbyIvPyTibFqHuLiQZ2yZJe2fhzyOjs4o7sDLZ5HU": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GmOpenInterestAggregatorLambdaFunction"
+              },
+              "CodeSha256": "OO4bL7nDVJNojANtXHz7M1NrvqcnqrT8rkRleNoEutM=",
+              "Description": "fetch Open Interests of GM pool."
+            }
+          },
+          "GetLoanStatsApiLambdaVersiont9V1nnNnCdZAMYRc5ElD0TS74fQgX4mDbrCp2z3bY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetLoanStatsApiLambdaFunction"
+              },
+              "CodeSha256": "pB444pej/gQwmkdMJlRUGauTdoa4FDjkNFYnuGc/LTo=",
+              "Description": "Get Loan stats for the period"
+            }
+          },
+          "SJOEApyAggregatorLambdaVersionToBBamH25ob0DMNXNcTyX9eaAHCYMRYB5H3u5h4kM": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "SJOEApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch APYs from LFJ website."
+            }
+          },
+          "LoanStatsAggregatorArbLambdaVersionLGufvKo6LLHNZg6xaofp5WNjj7RyWhcbTXVuZejh8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LoanStatsAggregatorArbLambdaFunction"
+              },
+              "CodeSha256": "hW3OqI6NlDSYTazrn9RIcmnpCsioOO59SivFQcXO74Q=",
+              "Description": "Aggregate loan statistics for all Prime Accounts on Arbitrum network"
+            }
+          },
+          "GlpAprAggregatorLambdaVersion9AwDJ56KcUTl8wNsc4n109JvxVws29bzlHaahHxzg": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GlpAprAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch GLP Apr from GMX website."
+            }
+          },
+          "AerodromeApyAggregatorLambdaVersionSL8KIQ2mANEkjV0HgKHAzeqnZSt4W5h2896LLBpJs": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "AerodromeApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "fXIOW6njEz8yAnWYy1vHK7j65R45ZeAJkK4Lgv4UiSM=",
+              "Description": "Fetch APYs from Aerodrome website."
+            }
+          },
+          "GetLoanSnapshotsApiLambdaVersionzWfKzfgC7Erv84R9AXIZzUeB46WnELQD3NP3zgcNfF8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetLoanSnapshotsApiLambdaFunction"
+              },
+              "CodeSha256": "GYNDmVCRn/Y7ky508EhofVCRSUaxJRTprXlOtEbepXc=",
+              "Description": "Get historical snapshots for a specific loan"
+            }
+          },
+          "TraderJoeApyAggregatorLambdaVersion6gsAZQAJhaLI4YPtFrKFIXDgokC66uep27tUu2YWBI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "TraderJoeApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch APYs from TraderJoe website."
+            }
+          },
+          "BalancerTvlAndApyAggregatorLambdaVersionbtXdI64KmYEE6tBdxsWfmKDYQ0a6im4lpyDVNGIoYk": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "BalancerTvlAndApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch pool APYs from Balancer website."
+            }
+          },
+          "GmxApyAggregatorLambdaVersiont9DIPDImjvDmdWyp2QIQ5nEBzPj2XmltcuV9b3Dg4": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GmxApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "tfDFeuPSyduS5wnrVde6EUOB83y0i6+b0LVX1ne3IyY=",
+              "Description": "Fetch GM token APYs from GMX website."
+            }
+          },
+          "GetGmxIncentivesApiLambdaVersion2z8oTtasDj8XmkU1jayVvx8boNRscpYDB7NdHdXXku8": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetGmxIncentivesApiLambdaFunction"
+              },
+              "CodeSha256": "CIB3a93U4CJ3KSzcPHDdfKC7oSCyX/3z96MBhP3pHnM=",
+              "Description": "Get GMX incentives for a loan"
+            }
+          },
+          "BeefyApyAggregatorLambdaVersionVHRojGAJi0IFNpfgRWPCUlJbCJf17BgEmg9XEbs": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "BeefyApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch APYs from Beefy website."
+            }
+          },
+          "GetGmOpenInterestsApiLambdaVersionDD5bgrowPpTYgc6CouhfQKs3SGDUbU4yZpVtwfeZlsM": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetGmOpenInterestsApiLambdaFunction"
+              },
+              "CodeSha256": "cE7OY/NrDkuCgT8X2cBJ0kg5OGOSrNqTLNkrjVZTYpo=",
+              "Description": "Fetch Open Interest of GM pools"
+            }
+          },
+          "AssetStakingApyAggregatorLambdaVersionUbo1E4QVMu9AcdywY1vXyinQplLE5qPmFcQgxWBHY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "AssetStakingApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch staking APYs of various assets."
+            }
+          },
+          "LpAndFarmApyAggregatorLambdaVersionWbsHcrsPsfu2jw1Iv945aS5GP31sTOEh6dqGwvYCsqc": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LpAndFarmApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch LP and Farm APYs from Pangolin and TraderJoe V1"
+            }
+          },
+          "GlvApyAggregatorLambdaVersionThlM8Im2PdZqZjYDdIzQxDxKOJc8aWvmRHeQqXY2w": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GlvApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "Fetch APYs from GMX website for GLV Pools."
+            }
+          },
+          "PendleTvlAndApyAggregatorLambdaVersionl2zlebbOQnquAD6ak1KAFgKwF6GBfBclgLyQXEVEQ": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "PendleTvlAndApyAggregatorLambdaFunction"
+              },
+              "CodeSha256": "1RUB2kA+MQy5td780sDmYiXElnkCPCc3wGqs3ACicQQ=",
+              "Description": "fetch TVLs and APYs of Pendle pools."
+            }
+          },
+          "GmxIncentivesCalculatorArbQAEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(10 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "GmxIncentivesCalculatorArbQALambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "gmxIncentivesCalculatorArbQASchedule"
+                }
+              ]
+            }
+          },
+          "GmxIncentivesCalculatorArbQALambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GmxIncentivesCalculatorArbQALambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "GmxIncentivesCalculatorArbQAEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "LoanStatsAggregatorAvaEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(12 hours)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "LoanStatsAggregatorAvaLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "loanStatsAggregatorAvaSchedule"
+                }
+              ]
+            }
+          },
+          "LoanStatsAggregatorAvaLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LoanStatsAggregatorAvaLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "LoanStatsAggregatorAvaEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "LoanStatsAggregatorArbEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(12 hours)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "LoanStatsAggregatorArbLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "loanStatsAggregatorArbSchedule"
+                }
+              ]
+            }
+          },
+          "LoanStatsAggregatorArbLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LoanStatsAggregatorArbLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "LoanStatsAggregatorArbEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "GlpAprAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(5 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "GlpAprAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "glpAprAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "GlpAprAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GlpAprAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "GlpAprAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "LpAndFarmApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "LpAndFarmApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "lpAndFarmApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "LpAndFarmApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LpAndFarmApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "LpAndFarmApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "TraderJoeApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "TraderJoeApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "traderJoeApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "TraderJoeApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "TraderJoeApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "TraderJoeApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "AerodromeApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "AerodromeApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "aerodromeApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "AerodromeApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "AerodromeApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "AerodromeApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "GlvApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "GlvApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "glvApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "GlvApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GlvApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "GlvApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "SJOEApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "SJOEApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "sJOEApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "SJOEApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "SJOEApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "SJOEApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "BeefyApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "BeefyApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "beefyApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "BeefyApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "BeefyApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "BeefyApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "GmxApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "GmxApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "gmxApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "GmxApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GmxApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "GmxApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "BalancerTvlAndApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "BalancerTvlAndApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "balancerTvlAndApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "BalancerTvlAndApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "BalancerTvlAndApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "BalancerTvlAndApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "AssetStakingApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(10 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "AssetStakingApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "assetStakingApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "AssetStakingApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "AssetStakingApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "AssetStakingApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "GmOpenInterestAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(15 minutes)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "GmOpenInterestAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "gmOpenInterestAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "GmOpenInterestAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GmOpenInterestAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "GmOpenInterestAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "PendleTvlAndApyAggregatorEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(1 hour)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "PendleTvlAndApyAggregatorLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "pendleTvlAndApyAggregatorSchedule"
+                }
+              ]
+            }
+          },
+          "PendleTvlAndApyAggregatorLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "PendleTvlAndApyAggregatorLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "PendleTvlAndApyAggregatorEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "HttpApi": {
+            "Type": "AWS::ApiGatewayV2::Api",
+            "Properties": {
+              "Name": "prod-deltaprime-cloud",
+              "ProtocolType": "HTTP",
+              "CorsConfiguration": {
+                "AllowHeaders": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "AllowMethods": [
+                  "GET",
+                  "POST",
+                  "PUT",
+                  "DELETE",
+                  "OPTIONS"
+                ],
+                "AllowOrigins": [
+                  "*"
+                ]
+              }
+            }
+          },
+          "HttpApiStage": {
+            "Type": "AWS::ApiGatewayV2::Stage",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "StageName": "$default",
+              "AutoDeploy": true,
+              "DefaultRouteSettings": {
+                "DetailedMetricsEnabled": false
+              }
+            }
+          },
+          "GetGmxIncentivesApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetGmxIncentivesApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetGmxIncentivesApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetGmxIncentivesApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetGmxDashincentivesNetworkVarIdVar": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /gmx-incentives/{network}/{id}",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetGmxIncentivesApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetGmxIncentivesApi"
+          },
+          "GetGmxIncentivesHistoryApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetGmxIncentivesHistoryApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetGmxIncentivesHistoryApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetGmxIncentivesHistoryApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetGmxDashincentivesDashhistoryNetworkVar": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /gmx-incentives-history/{network}",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetGmxIncentivesHistoryApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetGmxIncentivesHistoryApi"
+          },
+          "GetLoanSnapshotsApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetLoanSnapshotsApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetLoanSnapshotsApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetLoanSnapshotsApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetGmxDashincentivesDashsnapshotsNetworkVarLoanidVar": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /gmx-incentives-snapshots/{network}/{loanId}",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetLoanSnapshotsApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetLoanSnapshotsApi"
+          },
+          "AssetApyApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "AssetApyApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationAssetApyApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"AssetApyApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetApys": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /apys",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationAssetApyApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationAssetApyApi"
+          },
+          "GetRewardsInfoApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetRewardsInfoApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetRewardsInfoApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetRewardsInfoApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetTraderjoeRewardsClaimable": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /traderjoe/rewards/claimable",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetRewardsInfoApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetRewardsInfoApi"
+          },
+          "GetGmOpenInterestsApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetGmOpenInterestsApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetGmOpenInterestsApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetGmOpenInterestsApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetGmDashopenDashinterests": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /gm-open-interests",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetGmOpenInterestsApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetGmOpenInterestsApi"
+          },
+          "GetLoanStatsApiLambdaPermissionHttpApi": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetLoanStatsApiLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "HttpApi"
+                    },
+                    "/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "HttpApiIntegrationGetLoanStatsApi": {
+            "Type": "AWS::ApiGatewayV2::Integration",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "IntegrationType": "AWS_PROXY",
+              "IntegrationUri": {
+                "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetLoanStatsApiLambdaPermissionHttpApi\"][\"Properties\"][\"FunctionName\"]"
+              },
+              "PayloadFormatVersion": "2.0",
+              "TimeoutInMillis": 30000
+            }
+          },
+          "HttpApiRouteGetLoanDashstats": {
+            "Type": "AWS::ApiGatewayV2::Route",
+            "Properties": {
+              "ApiId": {
+                "Ref": "HttpApi"
+              },
+              "RouteKey": "GET /loan-stats",
+              "Target": {
+                "Fn::Join": [
+                  "/",
+                  [
+                    "integrations",
+                    {
+                      "Ref": "HttpApiIntegrationGetLoanStatsApi"
+                    }
+                  ]
+                ]
+              }
+            },
+            "DependsOn": "HttpApiIntegrationGetLoanStatsApi"
+          },
+          "gmxIncentivesAvaTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gmx-incentives-ava-prod"
+            }
+          },
+          "gmxIncentivesArbTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gmx-incentives-arb-prod"
+            }
+          },
+          "gmxIncentivesArbQATable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gmx-incentives-arb-qa-prod"
+            }
+          },
+          "gmxIncentivesRunHistoryTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "chain",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "timestamp",
+                  "AttributeType": "N"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gmx-incentives-run-history-prod",
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "ChainTimestampIndex",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "chain",
+                      "KeyType": "HASH"
+                    },
+                    {
+                      "AttributeName": "timestamp",
+                      "KeyType": "RANGE"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  }
+                }
+              ]
+            }
+          },
+          "gmxIncentivesLoanSnapshotsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "runTimestamp",
+                  "AttributeType": "N"
+                },
+                {
+                  "AttributeName": "loanId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "runTimestamp",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "loanId",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gmx-incentives-loan-snapshots-prod",
+              "GlobalSecondaryIndexes": [
+                {
+                  "IndexName": "LoanIdIndex",
+                  "KeySchema": [
+                    {
+                      "AttributeName": "loanId",
+                      "KeyType": "HASH"
+                    },
+                    {
+                      "AttributeName": "runTimestamp",
+                      "KeyType": "RANGE"
+                    }
+                  ],
+                  "Projection": {
+                    "ProjectionType": "ALL"
+                  }
+                }
+              ]
+            }
+          },
+          "ApysTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "apys-prod"
+            }
+          },
+          "gmOpenInterestTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "gm-open-interest-prod"
+            }
+          },
+          "loanStatsAvaTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "timestamp",
+                  "AttributeType": "N"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "timestamp",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "loan-stats-ava-prod"
+            }
+          },
+          "loanStatsArbTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                },
+                {
+                  "AttributeName": "timestamp",
+                  "AttributeType": "N"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                },
+                {
+                  "AttributeName": "timestamp",
+                  "KeyType": "RANGE"
+                }
+              ],
+              "BillingMode": "PAY_PER_REQUEST",
+              "StreamSpecification": {
+                "StreamViewType": "NEW_AND_OLD_IMAGES"
+              },
+              "TableName": "loan-stats-arb-prod"
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-ServerlessDeploymentBucketName"
+            }
+          },
+          "GetRewardsInfoApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetRewardsInfoApiLambdaVersion6rjFbYcRGmEwtO95FImpvvyo3OqiLcpd1sN5ukzmI8"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetRewardsInfoApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetGmxIncentivesHistoryApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetGmxIncentivesHistoryApiLambdaVersionqdy9elcbbEw303KIvyhkBGLEnyar3gkhhWzLM1u0Srk"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetGmxIncentivesHistoryApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "GmxIncentivesCalculatorArbQALambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GmxIncentivesCalculatorArbQALambdaVersionUSJ2OQp6xeI2mcV7q3jXWfWERvqJpC5Gt0UmmwUq4g"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GmxIncentivesCalculatorArbQALambdaFunctionQualifiedArn"
+            }
+          },
+          "LoanStatsAggregatorAvaLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LoanStatsAggregatorAvaLambdaVersion18yHFvRzmVZZLphAhKjFUe4IR1Mg3zao3HbdFfKW0o"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-LoanStatsAggregatorAvaLambdaFunctionQualifiedArn"
+            }
+          },
+          "AssetApyApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "AssetApyApiLambdaVersion87OKYfXbaa7pSNjVRUsfQgMyRrRk4Eq9KP7bviIWJY"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-AssetApyApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "GmOpenInterestAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GmOpenInterestAggregatorLambdaVersionbyIvPyTibFqHuLiQZ2yZJe2fhzyOjs4o7sDLZ5HU"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GmOpenInterestAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetLoanStatsApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetLoanStatsApiLambdaVersiont9V1nnNnCdZAMYRc5ElD0TS74fQgX4mDbrCp2z3bY"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetLoanStatsApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "SJOEApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "SJOEApyAggregatorLambdaVersionToBBamH25ob0DMNXNcTyX9eaAHCYMRYB5H3u5h4kM"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-SJOEApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "LoanStatsAggregatorArbLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LoanStatsAggregatorArbLambdaVersionLGufvKo6LLHNZg6xaofp5WNjj7RyWhcbTXVuZejh8"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-LoanStatsAggregatorArbLambdaFunctionQualifiedArn"
+            }
+          },
+          "GlpAprAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GlpAprAggregatorLambdaVersion9AwDJ56KcUTl8wNsc4n109JvxVws29bzlHaahHxzg"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GlpAprAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "AerodromeApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "AerodromeApyAggregatorLambdaVersionSL8KIQ2mANEkjV0HgKHAzeqnZSt4W5h2896LLBpJs"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-AerodromeApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetLoanSnapshotsApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetLoanSnapshotsApiLambdaVersionzWfKzfgC7Erv84R9AXIZzUeB46WnELQD3NP3zgcNfF8"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetLoanSnapshotsApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "TraderJoeApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "TraderJoeApyAggregatorLambdaVersion6gsAZQAJhaLI4YPtFrKFIXDgokC66uep27tUu2YWBI"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-TraderJoeApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "BalancerTvlAndApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "BalancerTvlAndApyAggregatorLambdaVersionbtXdI64KmYEE6tBdxsWfmKDYQ0a6im4lpyDVNGIoYk"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-BalancerTvlAndApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GmxApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GmxApyAggregatorLambdaVersiont9DIPDImjvDmdWyp2QIQ5nEBzPj2XmltcuV9b3Dg4"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GmxApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetGmxIncentivesApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetGmxIncentivesApiLambdaVersion2z8oTtasDj8XmkU1jayVvx8boNRscpYDB7NdHdXXku8"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetGmxIncentivesApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "BeefyApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "BeefyApyAggregatorLambdaVersionVHRojGAJi0IFNpfgRWPCUlJbCJf17BgEmg9XEbs"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-BeefyApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetGmOpenInterestsApiLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetGmOpenInterestsApiLambdaVersionDD5bgrowPpTYgc6CouhfQKs3SGDUbU4yZpVtwfeZlsM"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GetGmOpenInterestsApiLambdaFunctionQualifiedArn"
+            }
+          },
+          "AssetStakingApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "AssetStakingApyAggregatorLambdaVersionUbo1E4QVMu9AcdywY1vXyinQplLE5qPmFcQgxWBHY"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-AssetStakingApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "LpAndFarmApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LpAndFarmApyAggregatorLambdaVersionWbsHcrsPsfu2jw1Iv945aS5GP31sTOEh6dqGwvYCsqc"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-LpAndFarmApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "GlvApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GlvApyAggregatorLambdaVersionThlM8Im2PdZqZjYDdIzQxDxKOJc8aWvmRHeQqXY2w"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-GlvApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "PendleTvlAndApyAggregatorLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "PendleTvlAndApyAggregatorLambdaVersionl2zlebbOQnquAD6ak1KAFgKwF6GBfBclgLyQXEVEQ"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-PendleTvlAndApyAggregatorLambdaFunctionQualifiedArn"
+            }
+          },
+          "HttpApiId": {
+            "Description": "Id of the HTTP API",
+            "Value": {
+              "Ref": "HttpApi"
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-HttpApiId"
+            }
+          },
+          "HttpApiUrl": {
+            "Description": "URL of the HTTP API",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "HttpApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  }
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-deltaprime-cloud-prod-HttpApiUrl"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "custom": {
+      "prune": {
+        "automatic": true,
+        "number": 3
+      }
+    },
+    "plugins": [
+      "serverless-prune-plugin"
+    ],
+    "pluginsData": {},
+    "functions": {
+      "gmxIncentivesCalculatorArbQA": {
+        "handler": "gmxIncentives/gmxIncentivesCalculatorArbQA.handler",
+        "memorySize": 1024,
+        "timeout": 900,
+        "description": "Calculate GMX incentives for leveraged GM positions on Arbitrum QA.",
+        "events": [
+          {
+            "schedule": "rate(10 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-gmxIncentivesCalculatorArbQA",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-gmxIncentivesCalculatorArbQA.zip"
+        },
+        "memory": 1024,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GmxIncentivesCalculatorArbQALambdaVersionUSJ2OQp6xeI2mcV7q3jXWfWERvqJpC5Gt0UmmwUq4g"
+      },
+      "getGmxIncentivesApi": {
+        "handler": "apis/gmxIncentives.getGmxIncentivesApi",
+        "memorySize": 1024,
+        "description": "Get GMX incentives for a loan",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/gmx-incentives/{network}/{id}"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/gmx-incentives/{network}/{id}"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getGmxIncentivesApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getGmxIncentivesApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetGmxIncentivesApiLambdaVersion2z8oTtasDj8XmkU1jayVvx8boNRscpYDB7NdHdXXku8"
+      },
+      "getGmxIncentivesHistoryApi": {
+        "handler": "apis/gmxIncentives.getGmxIncentivesHistoryApi",
+        "memorySize": 1024,
+        "description": "Get GMX incentives run history",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/gmx-incentives-history/{network}"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/gmx-incentives-history/{network}"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getGmxIncentivesHistoryApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getGmxIncentivesHistoryApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetGmxIncentivesHistoryApiLambdaVersionqdy9elcbbEw303KIvyhkBGLEnyar3gkhhWzLM1u0Srk"
+      },
+      "getLoanSnapshotsApi": {
+        "handler": "apis/gmxIncentives.getLoanSnapshotsApi",
+        "memorySize": 1024,
+        "description": "Get historical snapshots for a specific loan",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/gmx-incentives-snapshots/{network}/{loanId}"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/gmx-incentives-snapshots/{network}/{loanId}"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getLoanSnapshotsApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getLoanSnapshotsApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetLoanSnapshotsApiLambdaVersionzWfKzfgC7Erv84R9AXIZzUeB46WnELQD3NP3zgcNfF8"
+      },
+      "loanStatsAggregatorAva": {
+        "handler": "loanStats/loanStatsAggregatorAva.handler",
+        "memorySize": 1024,
+        "timeout": 900,
+        "description": "Aggregate loan statistics for all Prime Accounts on Avalanche network",
+        "events": [
+          {
+            "schedule": "rate(12 hours)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-loanStatsAggregatorAva",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-loanStatsAggregatorAva.zip"
+        },
+        "memory": 1024,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "LoanStatsAggregatorAvaLambdaVersion18yHFvRzmVZZLphAhKjFUe4IR1Mg3zao3HbdFfKW0o"
+      },
+      "loanStatsAggregatorArb": {
+        "handler": "loanStats/loanStatsAggregatorArb.handler",
+        "memorySize": 1024,
+        "timeout": 900,
+        "description": "Aggregate loan statistics for all Prime Accounts on Arbitrum network",
+        "events": [
+          {
+            "schedule": "rate(12 hours)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-loanStatsAggregatorArb",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-loanStatsAggregatorArb.zip"
+        },
+        "memory": 1024,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "LoanStatsAggregatorArbLambdaVersionLGufvKo6LLHNZg6xaofp5WNjj7RyWhcbTXVuZejh8"
+      },
+      "glpAprAggregator": {
+        "handler": "aggregators/apy.glpAprAggregator",
+        "memorySize": 3008,
+        "timeout": 300,
+        "description": "Fetch GLP Apr from GMX website.",
+        "events": [
+          {
+            "schedule": "rate(5 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-glpAprAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-glpAprAggregator.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GlpAprAggregatorLambdaVersion9AwDJ56KcUTl8wNsc4n109JvxVws29bzlHaahHxzg"
+      },
+      "lpAndFarmApyAggregator": {
+        "handler": "aggregators/apy.lpAndFarmApyAggregator",
+        "memorySize": 256,
+        "timeout": 120,
+        "description": "Fetch LP and Farm APYs from Pangolin and TraderJoe V1",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-lpAndFarmApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-lpAndFarmApyAggregator.zip"
+        },
+        "memory": 256,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "LpAndFarmApyAggregatorLambdaVersionWbsHcrsPsfu2jw1Iv945aS5GP31sTOEh6dqGwvYCsqc"
+      },
+      "traderJoeApyAggregator": {
+        "handler": "aggregators/apy.traderJoeApyAggregator",
+        "memorySize": 1300,
+        "timeout": 900,
+        "description": "Fetch APYs from TraderJoe website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-traderJoeApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-traderJoeApyAggregator.zip"
+        },
+        "memory": 1300,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "TraderJoeApyAggregatorLambdaVersion6gsAZQAJhaLI4YPtFrKFIXDgokC66uep27tUu2YWBI"
+      },
+      "aerodromeApyAggregator": {
+        "handler": "aggregators/apy.aerodromeApyAggregator",
+        "memorySize": 2500,
+        "timeout": 900,
+        "description": "Fetch APYs from Aerodrome website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-aerodromeApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-aerodromeApyAggregator.zip"
+        },
+        "memory": 2500,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "AerodromeApyAggregatorLambdaVersionSL8KIQ2mANEkjV0HgKHAzeqnZSt4W5h2896LLBpJs"
+      },
+      "glvApyAggregator": {
+        "handler": "aggregators/apy.glvApyAggregator",
+        "memorySize": 2500,
+        "timeout": 900,
+        "description": "Fetch APYs from GMX website for GLV Pools.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-glvApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-glvApyAggregator.zip"
+        },
+        "memory": 2500,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GlvApyAggregatorLambdaVersionThlM8Im2PdZqZjYDdIzQxDxKOJc8aWvmRHeQqXY2w"
+      },
+      "sJOEApyAggregator": {
+        "handler": "aggregators/apy.sJOEApyAggregator",
+        "memorySize": 256,
+        "timeout": 900,
+        "description": "Fetch APYs from LFJ website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-sJOEApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-sJOEApyAggregator.zip"
+        },
+        "memory": 256,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "SJOEApyAggregatorLambdaVersionToBBamH25ob0DMNXNcTyX9eaAHCYMRYB5H3u5h4kM"
+      },
+      "beefyApyAggregator": {
+        "handler": "aggregators/apy.beefyApyAggregator",
+        "memorySize": 3008,
+        "timeout": 300,
+        "description": "Fetch APYs from Beefy website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-beefyApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-beefyApyAggregator.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "BeefyApyAggregatorLambdaVersionVHRojGAJi0IFNpfgRWPCUlJbCJf17BgEmg9XEbs"
+      },
+      "gmxApyAggregator": {
+        "handler": "aggregators/apy.gmxApyAggregator",
+        "memorySize": 3008,
+        "timeout": 300,
+        "description": "Fetch GM token APYs from GMX website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-gmxApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-gmxApyAggregator.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GmxApyAggregatorLambdaVersiont9DIPDImjvDmdWyp2QIQ5nEBzPj2XmltcuV9b3Dg4"
+      },
+      "balancerTvlAndApyAggregator": {
+        "handler": "aggregators/apy.balancerTvlAndApyAggregator",
+        "memorySize": 3008,
+        "timeout": 300,
+        "description": "Fetch pool APYs from Balancer website.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-balancerTvlAndApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-balancerTvlAndApyAggregator.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "BalancerTvlAndApyAggregatorLambdaVersionbtXdI64KmYEE6tBdxsWfmKDYQ0a6im4lpyDVNGIoYk"
+      },
+      "assetStakingApyAggregator": {
+        "handler": "aggregators/apy.assetStakingApyAggregator",
+        "memorySize": 256,
+        "timeout": 300,
+        "description": "Fetch staking APYs of various assets.",
+        "events": [
+          {
+            "schedule": "rate(10 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-assetStakingApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-assetStakingApyAggregator.zip"
+        },
+        "memory": 256,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "AssetStakingApyAggregatorLambdaVersionUbo1E4QVMu9AcdywY1vXyinQplLE5qPmFcQgxWBHY"
+      },
+      "gmOpenInterestAggregator": {
+        "handler": "gmOpenInterest/gmOpenInterestAggregator.handler",
+        "memorySize": 1024,
+        "timeout": 300,
+        "description": "fetch Open Interests of GM pool.",
+        "events": [
+          {
+            "schedule": "rate(15 minutes)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-gmOpenInterestAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-gmOpenInterestAggregator.zip"
+        },
+        "memory": 1024,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GmOpenInterestAggregatorLambdaVersionbyIvPyTibFqHuLiQZ2yZJe2fhzyOjs4o7sDLZ5HU"
+      },
+      "pendleTvlAndApyAggregator": {
+        "handler": "aggregators/apy.pendleTvlAndApyAggregator",
+        "memorySize": 3008,
+        "timeout": 300,
+        "description": "fetch TVLs and APYs of Pendle pools.",
+        "events": [
+          {
+            "schedule": "rate(1 hour)"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-pendleTvlAndApyAggregator",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-pendleTvlAndApyAggregator.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "PendleTvlAndApyAggregatorLambdaVersionl2zlebbOQnquAD6ak1KAFgKwF6GBfBclgLyQXEVEQ"
+      },
+      "assetApyApi": {
+        "handler": "apis/apy.assetApyApi",
+        "memorySize": 1024,
+        "description": "Fetch APYS of all assets and farms",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/apys"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/apys"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-assetApyApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-assetApyApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "AssetApyApiLambdaVersion87OKYfXbaa7pSNjVRUsfQgMyRrRk4Eq9KP7bviIWJY"
+      },
+      "getRewardsInfoApi": {
+        "handler": "apis/traderJoe.getRewardsInfoApi",
+        "memorySize": 1024,
+        "description": "Fetch claimable rewards and user proofs from TraderJoe V2 pool",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/traderjoe/rewards/claimable"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/traderjoe/rewards/claimable"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getRewardsInfoApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getRewardsInfoApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetRewardsInfoApiLambdaVersion6rjFbYcRGmEwtO95FImpvvyo3OqiLcpd1sN5ukzmI8"
+      },
+      "getGmOpenInterestsApi": {
+        "handler": "apis/gmOpenInterests.getGmOpenInterestsApi",
+        "memorySize": 3008,
+        "timeout": 20,
+        "description": "Fetch Open Interest of GM pools",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/gm-open-interests"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/gm-open-interests"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getGmOpenInterestsApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getGmOpenInterestsApi.zip"
+        },
+        "memory": 3008,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetGmOpenInterestsApiLambdaVersionDD5bgrowPpTYgc6CouhfQKs3SGDUbU4yZpVtwfeZlsM"
+      },
+      "getLoanStatsApi": {
+        "handler": "apis/loanStats.getLoanStatsApi",
+        "memorySize": 1024,
+        "description": "Get Loan stats for the period",
+        "events": [
+          {
+            "httpApi": {
+              "method": "get",
+              "path": "/loan-stats"
+            },
+            "resolvedMethod": "GET",
+            "resolvedPath": "/loan-stats"
+          }
+        ],
+        "name": "deltaprime-cloud-prod-getLoanStatsApi",
+        "environment": {
+          "NODE_OPTIONS": "--enable-source-maps"
+        },
+        "package": {
+          "artifact": "/Users/kamilovsky/vscode/dp-contracts-only-private/lambda/.serverless/build/deltaprime-cloud-getLoanStatsApi.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs20.x",
+        "vpc": {},
+        "versionLogicalId": "GetLoanStatsApiLambdaVersiont9V1nnNnCdZAMYRc5ElD0TS74fQgX4mDbrCp2z3bY"
+      }
+    },
+    "resources": {
+      "Resources": {
+        "gmxIncentivesAvaTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gmx-incentives-ava-prod"
+          }
+        },
+        "gmxIncentivesArbTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gmx-incentives-arb-prod"
+          }
+        },
+        "gmxIncentivesArbQATable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gmx-incentives-arb-qa-prod"
+          }
+        },
+        "gmxIncentivesRunHistoryTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "chain",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "timestamp",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gmx-incentives-run-history-prod",
+            "GlobalSecondaryIndexes": [
+              {
+                "IndexName": "ChainTimestampIndex",
+                "KeySchema": [
+                  {
+                    "AttributeName": "chain",
+                    "KeyType": "HASH"
+                  },
+                  {
+                    "AttributeName": "timestamp",
+                    "KeyType": "RANGE"
+                  }
+                ],
+                "Projection": {
+                  "ProjectionType": "ALL"
+                }
+              }
+            ]
+          }
+        },
+        "gmxIncentivesLoanSnapshotsTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "runTimestamp",
+                "AttributeType": "N"
+              },
+              {
+                "AttributeName": "loanId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "runTimestamp",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "loanId",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gmx-incentives-loan-snapshots-prod",
+            "GlobalSecondaryIndexes": [
+              {
+                "IndexName": "LoanIdIndex",
+                "KeySchema": [
+                  {
+                    "AttributeName": "loanId",
+                    "KeyType": "HASH"
+                  },
+                  {
+                    "AttributeName": "runTimestamp",
+                    "KeyType": "RANGE"
+                  }
+                ],
+                "Projection": {
+                  "ProjectionType": "ALL"
+                }
+              }
+            ]
+          }
+        },
+        "ApysTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "apys-prod"
+          }
+        },
+        "gmOpenInterestTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "gm-open-interest-prod"
+          }
+        },
+        "loanStatsAvaTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "timestamp",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "timestamp",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "loan-stats-ava-prod"
+          }
+        },
+        "loanStatsArbTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "DeletionPolicy": "Retain",
+          "Properties": {
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              },
+              {
+                "AttributeName": "timestamp",
+                "AttributeType": "N"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              },
+              {
+                "AttributeName": "timestamp",
+                "KeyType": "RANGE"
+              }
+            ],
+            "BillingMode": "PAY_PER_REQUEST",
+            "StreamSpecification": {
+              "StreamViewType": "NEW_AND_OLD_IMAGES"
+            },
+            "TableName": "loan-stats-arb-prod"
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless",
+    "initialServerlessConfig": {
+      "service": "deltaprime-cloud",
+      "frameworkVersion": "4",
+      "build": {
+        "esbuild": {
+          "bundle": true,
+          "minify": true,
+          "sourcemap": true,
+          "exclude": [
+            "aws-sdk"
+          ],
+          "target": "node20",
+          "platform": "node",
+          "external": [
+            "knex",
+            "sharp",
+            "@sparticuz/chromium",
+            "puppeteer",
+            "puppeteer-extra-plugin-stealth",
+            "puppeteer-extra",
+            "merge-deep",
+            "clone-deep",
+            "lazy-cache",
+            "kind-of"
+          ]
+        }
+      },
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "package": {
+        "individually": true,
+        "exclude": [
+          "package-lock.json",
+          ".serverless/**",
+          "gmOpenInterest/getLastWeekHistory.js"
+        ],
+        "artifactsS3KeyDirname": "serverless/deltaprime-cloud/prod/code-artifacts",
+        "deploymentBucket": "serverless-framework-deployments-us-east-1-d58a5a09-ba45",
+        "artifactDirectoryName": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z"
+      }
+    },
+    "appId": null,
+    "orgId": null,
+    "build": {
+      "$ref": "$[\"service\"][\"initialServerlessConfig\"][\"build\"]"
+    },
+    "layers": {}
+  },
+  "package": {
+    "individually": true,
+    "artifactDirectoryName": "serverless/deltaprime-cloud/prod/1764606330447-2025-12-01T16:25:30.447Z",
+    "artifact": ""
+  }
+}

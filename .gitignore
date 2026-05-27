@@ -19,3 +19,5 @@ typechain
 tenderly.yaml
 
 .env
+domain-knowledge.md
+work-goals.md

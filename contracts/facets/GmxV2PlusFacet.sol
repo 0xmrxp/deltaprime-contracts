@@ -4,11 +4,11 @@ pragma solidity 0.8.17;
 
 
 import "../ReentrancyGuardKeccak.sol";
-import "../OnlyOwnerOrInsolvent.sol";
+import "../PrimeAccountModifiers.sol";
 import "../lib/GmxV2FeesHelper.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
 
-abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, GmxV2FeesHelper {
+abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, PrimeAccountModifiers, GmxV2FeesHelper {
     using TransferHelper for address;
 
     // GMX contracts
@@ -89,7 +89,7 @@ abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent,
                 minMarketTokens: minGmAmount,
                 shouldUnwrapNativeToken: false,
                 executionFee: executionFee,
-                callbackGasLimit: 500000,
+                callbackGasLimit: 600000,
                 dataList: new bytes32[](0)
             })
         );
@@ -143,7 +143,7 @@ abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent,
         internal
         nonReentrant
         noBorrowInTheSameBlock
-        onlyOwnerNoStaySolventOrInsolventPayable
+        onlyOwnerOrLiquidationWithNoSolvencyCheck
     {
         if (executionFee != msg.value) revert InvalidExecutionFee();
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
@@ -205,7 +205,7 @@ abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent,
                 minShortTokenAmount: minShortTokenAmount,
                 shouldUnwrapNativeToken: false,
                 executionFee: executionFee,
-                callbackGasLimit: 500000,
+                callbackGasLimit: 600000,
                 dataList: new bytes32[](0)
             })
         );
@@ -217,18 +217,24 @@ abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent,
         address longToken = pricesAndAddresses.longToken;
         address shortToken = pricesAndAddresses.shortToken;
 
-        // Simulate solvency check with already fetched prices
-        if (msg.sender == DiamondStorageLib.contractOwner()) {
-            // Only owner can call this method or else it's liquidator when the account is already insolvent
-            if (!isWithinBounds(
-                (pricesAndAddresses.gmTokenPrice * gmAmount) /
-                    10 ** IERC20Metadata(gmToken).decimals(), // Deposit Amount In USD
-                (pricesAndAddresses.longTokenPrice * minLongTokenAmount) /
-                    10 ** IERC20Metadata(longToken).decimals() +
-                    (pricesAndAddresses.longTokenPrice * minShortTokenAmount) /    ///@dev shortToken == longToken
-                    10 ** IERC20Metadata(shortToken).decimals()
-            )) revert InvalidMinOutputValue();
+        // Price-bounds validation (isWithinBounds) applies to ALL callers, including
+        // whitelisted liquidators. A liquidator acting on an already-insolvent account
+        // is exempt from the solvency simulation below, but must still provide in-bounds
+        // min-out values - an out-of-bounds min-out would allow quietly locking in a
+        // worse exit price than the oracle price would imply.
+        if (!isWithinBounds(
+            (pricesAndAddresses.gmTokenPrice * gmAmount) /
+                10 ** IERC20Metadata(gmToken).decimals(), // Deposit Amount In USD
+            (pricesAndAddresses.longTokenPrice * minLongTokenAmount) /
+                10 ** IERC20Metadata(longToken).decimals() +
+                (pricesAndAddresses.longTokenPrice * minShortTokenAmount) /    ///@dev shortToken == longToken
+                10 ** IERC20Metadata(shortToken).decimals()
+        )) revert InvalidMinOutputValue();
 
+        // Solvency simulation remains gated to non-liquidator callers (i.e. the owner):
+        // a whitelisted liquidator must be able to withdraw from an already-insolvent
+        // account to unwind positions, otherwise the very recovery path would revert.
+        if (msg.sender == DiamondStorageLib.contractOwner()) {
             uint256 receivedTokensWeightedUsdValue = (((pricesAndAddresses.longTokenPrice *
                 minLongTokenAmount *
                 tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), longToken)) /
@@ -339,11 +345,6 @@ abstract contract GmxV2PlusFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent,
     function getGmPlusPerformance(address gmToken) external view returns (uint256) {
         GmxTokenPrices memory gmTokenPrices = _getGmxTokenPrices(gmToken);
         return _getGmAnnualisedPerformance(gmToken, gmTokenPrices.gmTokenPrice, gmTokenPrices.longTokenPrice, gmTokenPrices.shortTokenPrice);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     event DepositPlusInitiated(

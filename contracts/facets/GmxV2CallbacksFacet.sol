@@ -7,9 +7,11 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "../ReentrancyGuardKeccak.sol";
 import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 import "../lib/GmxV2FeesHelper.sol";
+import {GlvHelper} from "../lib/GlvHelper.sol";
 import "../interfaces/ITokenManager.sol";
 import "../interfaces/IWrappedNativeToken.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
+import {IGlvReader} from "../interfaces/gmx-v2/IGlvReader.sol";
 
 import "../interfaces/gmx-v2/DepositV2.sol";
 import "../interfaces/gmx-v2/WithdrawalV2.sol";
@@ -19,11 +21,13 @@ import "../interfaces/gmx-v2/IDepositCallbackReceiver.sol";
 import "../interfaces/gmx-v2/EventUtils.sol";
 import "../interfaces/gmx-v2/IWithdrawalCallbackReceiver.sol";
 import "../interfaces/gmx-v2/IGasFeeCallbackReceiver.sol";
+import "../interfaces/gmx-v2/IGlvDepositCallbackReceiver.sol";
+import "../interfaces/gmx-v2/IGlvWithdrawalCallbackReceiver.sol";
 
 //This path is updated during deployment
 import "../lib/local/DeploymentConstants.sol";
 
-abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCallbackReceiver, IGasFeeCallbackReceiver, ReentrancyGuardKeccak, GmxV2FeesHelper {
+abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCallbackReceiver, IGasFeeCallbackReceiver, IGlvDepositCallbackReceiver, IGlvWithdrawalCallbackReceiver, ReentrancyGuardKeccak, GmxV2FeesHelper, GlvHelper {
     using TransferHelper for address;
     using Deposit for Deposit.Props;
     using Withdrawal for Withdrawal.Props;
@@ -44,6 +48,8 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
     error CachedPricesTooStale();
     error MustBeGmxV2AuthorizedKeeper();
     error OrderCreatorNotAuthorized();
+    error GlvNotFoundInDepositData();
+    error GlvNotFoundInWithdrawalData();
 
     // GMX contracts
     function getGmxV2RoleStore() internal pure virtual returns (address);
@@ -59,10 +65,19 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
     function _getMarketTokens(address gmMarket) internal view returns (MarketTokens memory) {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         bool isPlusMarket = tokenManager.isGmxPlusMarket(gmMarket);
+        bool isGlvMarket = tokenManager.isGlvTokenWhitelisted(gmMarket);
         
         address gmxReader = DeploymentConstants.getGmxReaderAddress();
+        address glvReader = DeploymentConstants.getGlvReaderAddress();
         address dataStore = DeploymentConstants.getGmxDataStoreAddress();
-        IGmxReader.MarketProps memory marketProps = IGmxReader(gmxReader).getMarket(dataStore, gmMarket);
+        IGmxReader.MarketProps memory marketProps;
+        IGlvReader.Props memory props;
+        if (!isGlvMarket) {
+            marketProps = IGmxReader(gmxReader).getMarket(dataStore, gmMarket);
+        } else {
+            props = IGlvReader(glvReader).getGlv(dataStore, gmMarket);
+           
+        }
         
         if (isPlusMarket) {
             // Plus markets: both long and short are the same token
@@ -72,6 +87,18 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
                 longToken: token,
                 shortToken: token, // Same token for both
                 isPlusMarket: true
+            });
+        } else if (isGlvMarket) {
+            // GLV markets: both long and short are different
+            address glv = props.glvToken;
+            if (glv == address(0)) revert GlvTokenNotFound();
+            address longToken = props.longToken;
+            address shortToken = props.shortToken;
+            if (longToken == address(0) || shortToken == address(0)) revert GlvTokenNotFound();
+            return MarketTokens({
+                longToken: longToken,
+                shortToken: shortToken, 
+                isPlusMarket: false
             });
         } else {
             // Regular GM markets: different long and short tokens
@@ -154,12 +181,20 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
     function _updatePositionBenchmark(address market) internal {
         // Use cached prices instead of calling getPrices()
         GmxTokenPrices memory cachedPrices = _getPricesFromBenchmarkWithValidation(market);
+        ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         
         // Get token addresses for this market
         MarketTokens memory tokens = _getMarketTokens(market);
         
         uint256 gmTokenAmount = IERC20(market).balanceOf(address(this));
-        (uint256 longTokenAmount, uint256 shortTokenAmount) = _getUnderlyingTokenDetails(market, cachedPrices, tokens.longToken, tokens.shortToken);
+        uint256 longTokenAmount;
+        uint256 shortTokenAmount;
+        if (tokenManager.isGlvTokenWhitelisted(market)) {
+            (longTokenAmount, shortTokenAmount) = _getGlvLongAndShortTokenAmountsWithCachedPrices(market, gmTokenAmount, cachedPrices);
+        } else {
+            (longTokenAmount, shortTokenAmount) = _getUnderlyingTokenDetails(market, cachedPrices, tokens.longToken, tokens.shortToken);    
+        }
+    
         
         GmxPositionDetails memory positionDetails = GmxPositionDetails({
             underlyingLongTokenAmount: longTokenAmount,
@@ -175,7 +210,7 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
         _createOrUpdatePositionBenchmark(market, positionDetails);
     }
 
-    function _getPricesFromBenchmarkWithValidation(address gmMarket) internal view returns (GmxTokenPrices memory) {
+    function _getPricesFromBenchmarkWithValidation(address gmMarket) internal view returns (GmxTokenPrices memory) {    
         DiamondStorageLib.GmxPositionBenchmark memory benchmark = DiamondStorageLib.getGmxPositionBenchmark(gmMarket);
         
         if (!benchmark.exists) revert BenchmarkDoesNotExist();
@@ -225,6 +260,84 @@ abstract contract GmxV2CallbacksFacet is IDepositCallbackReceiver, IWithdrawalCa
         uint256 gmTokenAmount = IERC20(market).balanceOf(address(this));
         _updatePositionBenchmark(market);
     }
+
+    ///// GLV CALLBACKS ///////////
+
+    function afterGlvDepositExecution(bytes32 key, EventUtils.EventLogData memory glvDepositData, EventUtils.EventLogData memory eventData) external onlyGmxV2Keeper nonReentrant {
+        ///@dev the market isn't exactly a market but the glv token address, but calling it market to be used consistently with other methods
+        (address account, address market, uint256 executionFee) = extractGlvDepositDataFromEvent(glvDepositData);
+        _handleDepositExecution(account, market, executionFee);
+        _updatePositionBenchmark(market);
+    }
+
+    function afterGlvDepositCancellation(bytes32 key, EventUtils.EventLogData memory glvDepositData, EventUtils.EventLogData memory eventData) external onlyGmxV2Keeper nonReentrant {
+        (address account, address market, uint256 executionFee) = extractGlvDepositDataFromEvent(glvDepositData);
+        
+        bool found;
+        uint256 initialLongTokenAmount;
+        uint256 initialShortTokenAmount;
+        
+        (found, initialLongTokenAmount) = EventUtils.getWithoutRevert(glvDepositData.uintItems, "initialLongTokenAmount");
+        if (!found) revert InitialLongTokenAmountNotFound();
+        
+        (found, initialShortTokenAmount) = EventUtils.getWithoutRevert(glvDepositData.uintItems, "initialShortTokenAmount");
+        if (!found) revert InitialShortTokenAmountNotFound();
+        
+        _handleDepositCancellation(account, market, executionFee, initialLongTokenAmount, initialShortTokenAmount);
+        _updatePositionBenchmark(market);
+    }
+
+    function afterGlvWithdrawalExecution(bytes32 key, EventUtils.EventLogData memory glvWithdrawalData, EventUtils.EventLogData memory eventData) external onlyGmxV2Keeper nonReentrant {
+        (address account, address market, uint256 executionFee) = extractGlvWithdrawalDataFromEvent(glvWithdrawalData);
+        _handleWithdrawalExecution(account, market, executionFee);
+        _updatePositionBenchmark(market);
+    }
+
+    function afterGlvWithdrawalCancellation(bytes32 key, EventUtils.EventLogData memory glvWithdrawalData, EventUtils.EventLogData memory eventData) external onlyGmxV2Keeper nonReentrant {
+        (address account, address market, uint256 executionFee) = extractGlvWithdrawalDataFromEvent(glvWithdrawalData);
+        _handleWithdrawalCancellation(account, market, executionFee);
+        _updatePositionBenchmark(market);
+    }
+
+
+    // Extract GLV deposit data
+    function extractGlvDepositDataFromEvent(EventUtils.EventLogData memory glvDepositData) internal pure returns (
+        address account,
+        address glv,  // Use "glv" not "market"
+        uint256 executionFee
+    ) {
+        bool found;
+        
+        (found, account) = EventUtils.getWithoutRevert(glvDepositData.addressItems, "account");
+        if (!found) revert AccountNotFoundInDepositData();
+        
+        (found, glv) = EventUtils.getWithoutRevert(glvDepositData.addressItems, "glv");
+        if (!found) revert GlvNotFoundInDepositData(); 
+        
+        (found, executionFee) = EventUtils.getWithoutRevert(glvDepositData.uintItems, "executionFee");
+        if (!found) revert ExecutionFeeNotFoundInDepositData();
+    }
+
+    // Extract GLV withdrawal data - similar pattern
+    function extractGlvWithdrawalDataFromEvent(EventUtils.EventLogData memory glvWithdrawalData) internal pure returns (
+        address account,
+        address glv,
+        uint256 executionFee
+    ) {
+        bool found;
+        
+        (found, account) = EventUtils.getWithoutRevert(glvWithdrawalData.addressItems, "account");
+        if (!found) revert AccountNotFoundInWithdrawalData();
+        
+        (found, glv) = EventUtils.getWithoutRevert(glvWithdrawalData.addressItems, "glv");
+        if (!found) revert GlvNotFoundInWithdrawalData();  
+        
+        (found, executionFee) = EventUtils.getWithoutRevert(glvWithdrawalData.uintItems, "executionFee");
+        if (!found) revert ExecutionFeeNotFoundInWithdrawalData();
+    }
+
+
+    ///// END OF GLV CALLBACKS ////
 
     // SHARED INTERNAL LOGIC - Extract common logic to avoid duplication
     function _handleDepositExecution(address account, address market, uint256 executionFee) internal {

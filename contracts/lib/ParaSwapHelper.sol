@@ -4,9 +4,10 @@ pragma solidity 0.8.17;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ITokenManager} from "../interfaces/ITokenManager.sol";
+import {IPool} from "../interfaces/IPool.sol";
 import {TransferHelper} from "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import {DeploymentConstants} from "../lib/local/DeploymentConstants.sol";
-import {SolvencyMethods} from "./SolvencyMethods.sol";
+import {DiamondMethodsAccess} from "./DiamondMethodsAccess.sol";
 import {DiamondStorageLib} from "./DiamondStorageLib.sol";
 
 
@@ -15,15 +16,19 @@ import {DiamondStorageLib} from "./DiamondStorageLib.sol";
  * @notice Library containing extracted and reusable functions from ParaSwapFacet
  * @dev All functions are pure or view and can be used in any context
  */
-contract ParaSwapHelper is SolvencyMethods {
+contract ParaSwapHelper is DiamondMethodsAccess {
     using TransferHelper for address;
 
     // Constants
     uint256 private constant MAX_BPS = 10000;
-    uint256 private constant LIQUIDATION_MAX_SLIPPAGE_BPS = 500; // 5%
+    uint256 private constant LIQUIDATION_MAX_SLIPPAGE_BPS = 500; // 5% per-swap hard cap
     uint256 private constant NORMAL_MAX_SLIPPAGE_BPS = 500; // 5%
     uint256 private constant MAX_AMOUNT = type(uint128).max;
     uint256 private constant PRICE_DECIMALS = 10; // Prices have 8 decimals in this project
+    /// @dev Cumulative pre-liquidation slippage is measured in dollars and compared
+    /// against this fraction (in basis points) of the debt captured at snapshotInsolvency time.
+    /// 800 BPS = 8% of the liquidated debt value.
+    uint256 private constant MAX_CUMULATIVE_LOSS_BPS = 800;
 
     ///@dev paraSwap v6.2 router
     address private constant PARA_ROUTER = 0x6A000F20005980200259B80c5102003040001068;
@@ -68,6 +73,8 @@ contract ParaSwapHelper is SolvencyMethods {
     error SlippageTooHigh(uint256 actual, uint256 max);
     error InvalidDecimals();
     error TooMuchSold();
+    error CumulativeLossExceeded(uint256 cumulativeLossDollars, uint256 maxAllowedDollars);
+    error BoughtTokenHasNoDebt(bytes32 boughtSymbol);
 
     struct SwapTokensDetails {
         bytes32 tokenSoldSymbol;
@@ -204,6 +211,27 @@ contract ParaSwapHelper is SolvencyMethods {
         if (isLiquidation) {
             DiamondStorageLib.LiquidationSnapshotStorage storage ls = DiamondStorageLib.liquidationSnapshotStorage();
             require(ls.lastInsolventTimestamp > 0, "No insolvency snapshot - call snapshotInsolvency first");
+
+            // Pre-liquidation swaps may only produce tokens the Prime Account owes.
+            // This prevents liquidators from pivoting collateral through arbitrary assets
+            // on the way to eventual debt repayment.
+            _requireBoughtTokenHasDebt(data.destToken);
+        }
+    }
+
+    /**
+     * @notice Reverts unless the Prime Account has outstanding debt in `boughtToken`'s pool.
+     * @dev Allowing swaps into tokens the PA doesn't owe would let a pre-liquidation swap
+     *      move value through an arbitrary asset with no solvency guardrail, bypassing the intent
+     *      of bounding pre-liquidation slippage to assets directly needed for debt repayment.
+     */
+    function _requireBoughtTokenHasDebt(address boughtToken) internal view {
+        ITokenManager tokenManager = DeploymentConstants.getTokenManager();
+        bytes32 boughtSymbol = tokenManager.tokenAddressToSymbol(boughtToken);
+        // getPoolAddress reverts for non-borrowable assets; that reverts pre-liquidation swap appropriately.
+        address pool = tokenManager.getPoolAddress(boughtSymbol);
+        if (IPool(pool).getBorrowed(address(this)) == 0) {
+            revert BoughtTokenHasNoDebt(boughtSymbol);
         }
     }
 
@@ -290,12 +318,28 @@ contract ParaSwapHelper is SolvencyMethods {
         uint256 boughtTokenDollarValue = prices[1] * boughtAmount * (10**PRICE_DECIMALS) / (10**details.boughtTokenDecimals);
 
         if (soldTokenDollarValue > boughtTokenDollarValue) {
-            uint256 slippage = ((soldTokenDollarValue - boughtTokenDollarValue) * MAX_BPS) / soldTokenDollarValue;
+            uint256 lossDollars = soldTokenDollarValue - boughtTokenDollarValue;
+            uint256 slippage = (lossDollars * MAX_BPS) / soldTokenDollarValue;
             uint256 maxSlippage = isLiquidation ? LIQUIDATION_MAX_SLIPPAGE_BPS : NORMAL_MAX_SLIPPAGE_BPS;
 
+            // Per-swap hard cap (unchanged).
             if (slippage >= maxSlippage) {
                 emit SlippageExceeded(msg.sender, soldTokenDollarValue, boughtTokenDollarValue, slippage);
                 revert SlippageTooHigh(slippage, maxSlippage);
+            }
+
+            // For liquidation swaps, accumulate $-loss and compare against a fraction of the
+            // debt value captured at snapshotInsolvency(). This measures "how much value have
+            // pre-liquidation swaps drained, as a share of the debt the liquidator is unwinding",
+            // which is correct under variable swap sizes (simply summing BPS is not).
+            if (isLiquidation) {
+                DiamondStorageLib.LiquidationSnapshotStorage storage ls = DiamondStorageLib.liquidationSnapshotStorage();
+                uint256 newCumulativeLoss = ls.cumulativeLossDollars + lossDollars;
+                uint256 maxAllowedLoss = (ls.debtSnapshotDollars * MAX_CUMULATIVE_LOSS_BPS) / MAX_BPS;
+                if (newCumulativeLoss > maxAllowedLoss) {
+                    revert CumulativeLossExceeded(newCumulativeLoss, maxAllowedLoss);
+                }
+                ls.cumulativeLossDollars = newCumulativeLoss;
             }
         }
     }

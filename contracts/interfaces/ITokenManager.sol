@@ -65,4 +65,8 @@ interface ITokenManager {
     function getUnsupportedWithdrawableAssets() external view returns (address[] memory);
     function addUnsupportedWithdrawableAssets(address[] memory assets) external;
     function removeUnsupportedWithdrawableAssets(address[] memory assets) external;
+    function getChainlinkFeed(address token) external view returns (address);
+    function setChainlinkFeed(address token, address feed) external;
+    function isGlvTokenWhitelisted(address glvToken) external view returns (bool);
+    function setGlvTokenWhitelisting(address glvToken, bool isWhitelisted) external;
 }

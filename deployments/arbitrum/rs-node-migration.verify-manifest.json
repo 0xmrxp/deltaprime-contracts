@@ -1,0 +1,9 @@
+{
+  "tag": "rs-node-migration",
+  "network": "arbitrum",
+  "contracts": [
+    "GmxBenchmarkMath",
+    "SolvencyFacetProdArbitrum",
+    "HealthMeterFacetProd"
+  ]
+}

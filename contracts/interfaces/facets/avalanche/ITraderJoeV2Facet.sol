@@ -26,6 +26,8 @@ interface ITraderJoeV2Facet {
 
     function removeLiquidityTraderJoeV2(ILBRouter traderJoeV2Router, RemoveLiquidityParameters memory parameters) external;
 
+    function unwindUnsupportedTraderJoeV2Position(ILBPair pair, uint256[] calldata ids, uint256[] calldata amounts) external;
+
     function getOwnedTraderJoeV2Bins() external view returns (TraderJoeV2Bin[] memory result);
 
 }

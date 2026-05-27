@@ -28,6 +28,7 @@ import "./facets/avalanche/IWombatFacet.sol";
 import "./facets/IPrimeLeverageFacet.sol";
 import "./facets/ISJoeFacet.sol";
 import "./IWithdrawUnsupportedPositionsFacet.sol";
+import "./facets/arbitrum/IGlvFacet.sol";
 
 interface SmartLoanGigaChadInterface is
     IWithdrawalIntentFacet,
@@ -56,5 +57,6 @@ interface SmartLoanGigaChadInterface is
     IGogoPoolFacet,
     IPrimeLeverageFacet,
     ISJoeFacet,
-    IWithdrawUnsupportedPositionsFacet
+    IWithdrawUnsupportedPositionsFacet,
+    IGlvFacet
 {}

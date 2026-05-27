@@ -5,7 +5,8 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../../ReentrancyGuardKeccak.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/facets/IBeefyFinance.sol";
 
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
@@ -13,7 +14,7 @@ import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract BeefyFinanceArbitrumFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract BeefyFinanceArbitrumFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address payable;
     using TransferHelper for address;
 
@@ -30,7 +31,7 @@ contract BeefyFinanceArbitrumFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolven
       * @dev This function uses the redstone-evm-connector
       * @param amount amount of GMX to be staked
     **/
-    function stakeGmxBeefy(uint256 amount) public onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock remainsSolvent notInLiquidation {
+    function stakeGmxBeefy(uint256 amount) public onlyOwner nonReentrant noBorrowInTheSameBlock remainsSolvent notInLiquidation {
         _stakeLpBeefy(IBeefyFinance.BeefyStakingDetails({
             lpTokenAddress: GMX,
             vaultAddress: MOO_GMX,
@@ -47,7 +48,7 @@ contract BeefyFinanceArbitrumFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolven
       * @dev This function uses the redstone-evm-connector
       * @param amount amount of GMX to be unstaked
     **/
-    function unstakeGmxBeefy(uint256 amount) public onlyOwnerOrInsolvent noBorrowInTheSameBlock nonReentrant {
+    function unstakeGmxBeefy(uint256 amount) public onlyOwnerOrLiquidation noBorrowInTheSameBlock nonReentrant {
         _unstakeLpBeefy(IBeefyFinance.BeefyStakingDetails({
             lpTokenAddress: GMX,
             vaultAddress: MOO_GMX,
@@ -109,7 +110,6 @@ contract BeefyFinanceArbitrumFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolven
 
         emit Unstaked(msg.sender, stakingDetails.lpTokenSymbol, stakingDetails.vaultAddress, stakingDetails.amount, block.timestamp);
     }
-
 
     /* ========== RECEIVE AVAX FUNCTION ========== */
     receive() external payable {}

@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/ITokenManager.sol";
 import "../../interfaces/facets/avalanche/ITraderJoeV2Autopool.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
@@ -15,7 +16,7 @@ import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../lib/local/DeploymentConstants.sol";
 import "../../interfaces/facets/avalanche/ITraderJoeV2AutopoolsFacet.sol";
 
-contract TraderJoeV2AutopoolsFacet is ITraderJoeV2AutopoolsFacet, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract TraderJoeV2AutopoolsFacet is ITraderJoeV2AutopoolsFacet, ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     /**
@@ -104,7 +105,7 @@ contract TraderJoeV2AutopoolsFacet is ITraderJoeV2AutopoolsFacet, ReentrancyGuar
      * Unstakes {UnstakingDetails.token0Address}, {UnstakingDetails.token1Address} token from the SteakHut pool
      * @param unstakingDetails ITraderJoeV2Autopool.UnstakingDetails unstaking details
      **/
-    function unstakeTokenTraderJoeV2Autopool(ITraderJoeV2Autopool.UnstakingDetails memory unstakingDetails) private nonReentrant onlyOwnerOrInsolvent noBorrowInTheSameBlock notInLiquidation {
+    function unstakeTokenTraderJoeV2Autopool(ITraderJoeV2Autopool.UnstakingDetails memory unstakingDetails) private nonReentrant onlyOwnerOrLiquidation noBorrowInTheSameBlock notInLiquidation {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         address vaultAddress = tokenManager.getAssetAddress(unstakingDetails.vaultTokenSymbol, true);
         uint256 vaultTokenBalance = IERC20(vaultAddress).balanceOf(address(this));
@@ -143,13 +144,6 @@ contract TraderJoeV2AutopoolsFacet is ITraderJoeV2AutopoolsFacet, ReentrancyGuar
             vaultTokenBalance - newVaultTokenBalance,
             block.timestamp
         );
-    }
-
-    // MODIFIERS
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     // EVENTS

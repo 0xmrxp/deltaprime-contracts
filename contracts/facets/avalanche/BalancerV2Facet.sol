@@ -6,7 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/ITokenManager.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../interfaces/IStakingPositions.sol";
@@ -18,7 +19,7 @@ import "../../interfaces/facets/avalanche/IBalancerV2Facet.sol";
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract BalancerV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, IBalancerV2Facet {
+contract BalancerV2Facet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers, IBalancerV2Facet {
     using TransferHelper for address;
 
     // Used to deposit/withdraw tokens
@@ -228,7 +229,7 @@ contract BalancerV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, IBalanc
      * Unstakes tokens a gauge and exits a pool
      * @param request unstake request
     **/
-    function unstakeAndExitPoolBalancerV2(IBalancerV2Facet.UnstakeRequest memory request) external nonReentrant onlyOwnerOrInsolvent noBorrowInTheSameBlock {
+    function unstakeAndExitPoolBalancerV2(IBalancerV2Facet.UnstakeRequest memory request) external nonReentrant onlyOwnerOrLiquidation noBorrowInTheSameBlock {
         (address pool,) = IVault(MASTER_VAULT_ADDRESS).getPool(request.poolId);
         if (pool == address(0)) revert ZeroAddressPool();
 
@@ -317,7 +318,7 @@ contract BalancerV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, IBalanc
      * @param poolId balancer pool id
      * @param amount unstake amount
     **/
-    function unstakeBalancerV2(bytes32 poolId, uint256 amount) external nonReentrant onlyOwnerOrInsolvent noBorrowInTheSameBlock {
+    function unstakeBalancerV2(bytes32 poolId, uint256 amount) external nonReentrant onlyOwnerOrLiquidation noBorrowInTheSameBlock {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
 
         (address pool,) = IVault(MASTER_VAULT_ADDRESS).getPool(poolId);
@@ -543,13 +544,6 @@ contract BalancerV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, IBalanc
             }
             userData = abi.encode(1, stakedAmounts, request.minBptAmount);
         }
-    }
-
-    // MODIFIERS
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     // EVENTS

@@ -11,7 +11,7 @@ import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 import {ITokenManager} from "../interfaces/ITokenManager.sol";
 import {IStakingPositions} from "../interfaces/IStakingPositions.sol";
 import {Pool} from "../Pool.sol";
-import {OnlyOwnerOrInsolvent} from "../OnlyOwnerOrInsolvent.sol";
+import {PrimeAccountModifiers} from "../PrimeAccountModifiers.sol";
 import {SmartLoanLiquidationFacet} from "./SmartLoanLiquidationFacet.sol";
 import {IAssetsOperationsFacet} from "../interfaces/facets/IAssetsOperationsFacet.sol";
 import {ParaSwapHelper} from "../lib/ParaSwapHelper.sol";
@@ -25,7 +25,7 @@ import {DeploymentConstants} from "../lib/local/DeploymentConstants.sol";
  * @dev Allows users to convert their existing debt (e.g., USDC) into an equivalent value of debt in another token (e.g., BTC)
  * without changing their overall debt position value, using ParaSwap for efficient token conversion
  */
-contract SwapDebtFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, ParaSwapHelper {
+contract SwapDebtFacet is ReentrancyGuardKeccak, PrimeAccountModifiers, ParaSwapHelper {
 
     using TransferHelper for address payable;
     using TransferHelper for address;
@@ -130,11 +130,6 @@ contract SwapDebtFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, ParaSwapH
         _syncExposure(tokenManager, address(toToken));
 
         emit DebtSwap(msg.sender, address(fromToken), address(toToken), _repayAmount, _borrowAmount, block.timestamp);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
 }

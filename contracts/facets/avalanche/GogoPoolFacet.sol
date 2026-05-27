@@ -7,14 +7,15 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "../../ReentrancyGuardKeccak.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/IWrappedNativeToken.sol";
 import "../../interfaces/IGgAvax.sol";
 
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract GogoPoolFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract GogoPoolFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     address private constant GG_AVAX =
@@ -49,7 +50,7 @@ contract GogoPoolFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         external
         nonReentrant
         noBorrowInTheSameBlock
-        onlyOwnerOrInsolvent
+        onlyOwnerOrLiquidation
         
     {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
@@ -71,11 +72,6 @@ contract GogoPoolFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
 
         _syncExposure(tokenManager, GG_AVAX);
         _syncExposure(tokenManager, address(wrapped));
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     /* ========== RECEIVE AVAX FUNCTION ========== */

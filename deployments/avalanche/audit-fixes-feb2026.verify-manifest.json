@@ -1,0 +1,7 @@
+{
+  "tag": "audit-fixes-feb2026",
+  "network": "avalanche",
+  "contracts": [
+    "SmartLoansFactory"
+  ]
+}

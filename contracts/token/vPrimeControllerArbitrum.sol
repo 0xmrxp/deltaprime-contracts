@@ -4,6 +4,17 @@ pragma solidity 0.8.17;
 
 import "./vPrimeController.sol";
 
+/* ============================================================================
+ *                     DECOMMISSIONED CONTRACT - NOT IN USE
+ * ----------------------------------------------------------------------------
+ *  This contract has been DECOMMISSIONED and is no longer in use. It is kept
+ *  in the repository for reference only.
+ *
+ *  It was intentionally NOT migrated to the RedStone primary data service
+ *  ("redstone-primary-prod") during the May 2026 RedStone node migration and
+ *  still references the legacy "redstone-arbitrum-prod" data service. Do NOT
+ *  deploy, extend, or rely on this contract.
+ * ============================================================================ */
 contract vPrimeControllerArbitrum is vPrimeController {
     function getDataServiceId() public view virtual override returns (string memory) {
     return "redstone-arbitrum-prod";

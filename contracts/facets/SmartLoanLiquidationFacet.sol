@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: 906846718ca0539881ecb2a3c9454e6025e7963e;
+// Last deployed from commit: 56b7ba6f74e4dd5f903aad49110b5db8a353f45f;
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../ReentrancyGuardKeccak.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "../lib/SolvencyMethods.sol";
+import "../lib/DiamondMethodsAccess.sol";
 import "../Pool.sol";
 import "../interfaces/ITokenManager.sol";
+import "../PrimeAccountModifiers.sol";
 
 //This path is updated during deployment
 import "../lib/local/DeploymentConstants.sol";
@@ -20,7 +21,7 @@ import "../interfaces/facets/ISmartLoanLiquidationFacet.sol";
 import "../lib/LeverageTierLib.sol";
 
 
-contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuardKeccak, SolvencyMethods {
+contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     /**
     * Liquidation fee percentages based on leverage tier
     * BASIC: 14% of the repay amount
@@ -107,6 +108,14 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
         
         ls.lastInsolventTimestamp = block.timestamp;
         ls.healthRatioSnapshot = hr;
+        // Capture $-denominated debt at snapshot time. Pre-liquidation swaps may only
+        // cause cumulative $-slippage loss up to MAX_CUMULATIVE_LOSS_BPS of this figure.
+        ls.debtSnapshotDollars = _getDebt();
+        // Defensively zero the cumulative-loss accumulator on every fresh snapshot. The
+        // existing clear paths (clearInsolvencySnapshot, liquidate) already wipe it, but
+        // this guarantees a new snapshot never inherits a stale loss budget from a prior
+        // liquidation cycle.
+        delete ls.cumulativeLossDollars;
 
         emit InsolvencySnapshot(msg.sender, hr, block.timestamp);
     }
@@ -118,11 +127,13 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
     function clearInsolvencySnapshot() external onlyWhitelistedLiquidators remainsSolvent accountNotFrozen nonReentrant {
         DiamondStorageLib.LiquidationSnapshotStorage storage ls = DiamondStorageLib.liquidationSnapshotStorage();
         require(ls.lastInsolventTimestamp > 0, "No insolvency snapshot to clear");
-        
+
         // Clear insolvency snapshot
         delete ls.lastInsolventTimestamp;
         delete ls.healthRatioSnapshot;
-        
+        delete ls.debtSnapshotDollars;
+        delete ls.cumulativeLossDollars;
+
         emit InsolvencySnapshotCleared(msg.sender, block.timestamp);
     }
 
@@ -142,6 +153,11 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
     {
         DiamondStorageLib.LiquidationSnapshotStorage storage ls = DiamondStorageLib.liquidationSnapshotStorage();
         require(ls.lastInsolventTimestamp > 0, "No insolvency snapshot - call snapshotInsolvency first");
+        ///@dev the snapshot itself is the proof of insolvency; once a whitelisted liquidator has
+        /// taken it, they are entitled to liquidate within the 15-minute window enforced below
+        /// regardless of any subsequent price recovery. Re-checking _isSolvent() here would let an
+        /// attacker block legitimate liquidation by pumping prices for a single block.
+        require(block.timestamp - ls.lastInsolventTimestamp < 15 minutes, "Insolvency snapshot expired - take a new one");
         
         if (_emergencyMode) {
             _repayAllDebtsPartial();
@@ -175,10 +191,12 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
         // Clear insolvency snapshot
         delete ls.lastInsolventTimestamp;
         delete ls.healthRatioSnapshot;
-        
+        delete ls.debtSnapshotDollars;
+        delete ls.cumulativeLossDollars;
+
         // Emit liquidation event
         emit Liquidated(
-            msg.sender, 
+            msg.sender,
             block.timestamp
         );
     }
@@ -245,7 +263,7 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
     * @dev Distribute the liquidation fee to different treasuries (3-way split)
     */
     function _distributeLiquidationFee(uint256 percentageToTake) internal {
-        // Native token transfer (3-way split)
+        // Native token transfer (2-way split: 1/3 to stability pool, 2/3 to treasury)
         if (address(this).balance > 0) {
             uint256 transferAmount = address(this).balance * percentageToTake / 1e18;
             uint256 stabilityPoolTransferAmount = transferAmount / 3;
@@ -287,15 +305,5 @@ contract SmartLoanLiquidationFacet is ISmartLoanLiquidationFacet, ReentrancyGuar
                 _syncExposure(tokenManager, exposureUpdateAddress);
             }
         }
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
-    }
-
-    modifier accountNotFrozen(){
-        require(!DiamondStorageLib.isAccountFrozen(), "Account is frozen");
-        _;
     }
 }

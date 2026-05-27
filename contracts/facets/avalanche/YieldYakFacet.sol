@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../lib/SolvencyMethods.sol";
+import "../../lib/DiamondMethodsAccess.sol";
 import "../../interfaces/facets/avalanche/IYieldYak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../PrimeAccountModifiers.sol";
 
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../interfaces/IWrappedNativeToken.sol";
@@ -17,7 +17,7 @@ import "../../interfaces/IWrappedNativeToken.sol";
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract YieldYakFacet is ReentrancyGuardKeccak, SolvencyMethods, OnlyOwnerOrInsolvent {
+contract YieldYakFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address payable;
     using TransferHelper for address;
 
@@ -60,7 +60,7 @@ contract YieldYakFacet is ReentrancyGuardKeccak, SolvencyMethods, OnlyOwnerOrIns
     * @dev This function uses the redstone-evm-connector
         * @param amount amount of GLP to be unstaked
     **/
-    function unstakeGLPYak(uint256 amount) public onlyOwnerOrInsolvent nonReentrant {
+    function unstakeGLPYak(uint256 amount) public onlyOwnerOrLiquidation nonReentrant {
         _unstakeTokenYY(IYieldYak.YYStakingDetails({
         tokenAddress: GLP_TOKEN,
         vaultAddress: YY_GLP,
@@ -138,11 +138,6 @@ contract YieldYakFacet is ReentrancyGuardKeccak, SolvencyMethods, OnlyOwnerOrIns
             block.timestamp);
     }
 
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
-    }
 
     /* ========== RECEIVE AVAX FUNCTION ========== */
     receive() external payable {}

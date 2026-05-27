@@ -9,10 +9,13 @@ import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 import {LeverageTierLib} from "../lib/LeverageTierLib.sol";
 import "../lib/GmxV2FeesHelper.sol";
+import {GlvHelper} from "../lib/GlvHelper.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
+import {IGlvReader} from "../interfaces/gmx-v2/IGlvReader.sol";
+import {ISmartLoanLiquidationFacet} from "../interfaces/facets/ISmartLoanLiquidationFacet.sol";
 
 
-contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak, GmxV2FeesHelper {
+contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak, GmxV2FeesHelper, GlvHelper {
     using TransferHelper for address;
 
     // for prime token burning
@@ -52,10 +55,19 @@ contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak,
         uint256 finalAmount = validateWithdrawalIntents(tokenAddress, intentIndices);
         uint256 feesCollected = 0;
         
-        if (tokenManager.isGmxMarketWhitelisted(tokenAddress)) {
-            // OPTIMIZED: Use inherited method from GmxV2FeesHelper
-            gmTokenPrices = _getGmxTokenPrices(tokenAddress);
+        if (tokenManager.isGmxMarketWhitelisted(tokenAddress) || tokenManager.isGlvTokenWhitelisted(tokenAddress)) {
+            if(tokenManager.isGlvTokenWhitelisted(tokenAddress)) {
+                UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGlvTokenPricesAndAddresses(address(token));
+                gmTokenPrices = GmxTokenPrices({
+                gmTokenPrice: pricesAndAddresses.gmTokenPrice,
+                longTokenPrice: pricesAndAddresses.longTokenPrice,
+                shortTokenPrice: pricesAndAddresses.shortTokenPrice
+                });
+            } else  { // isGmxMarketWhitelisted
+                gmTokenPrices = _getGmxTokenPrices(tokenAddress);    
+            }
             feesCollected = _sweepFees(tokenAddress, gmTokenPrices);
+            feesCollected = feesCollected > finalAmount ? finalAmount : feesCollected; // Ensure we don't deduct more than the final amount
             if (feesCollected > 0) {
                 finalAmount -= feesCollected;
                 emit FeesSweptDuringWithdrawalIntent(
@@ -134,11 +146,10 @@ contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak,
         uint256 treasuryAmount = amount - burnAmount;
 
 
-        IERC20(primeTokenAddress).transfer(BURN_ADDRESS, burnAmount);
-        
-       
+        primeTokenAddress.safeTransfer(BURN_ADDRESS, burnAmount);
+
         address treasuryAddress = DeploymentConstants.getTreasuryAddress();
-        IERC20(primeTokenAddress).transfer(treasuryAddress, treasuryAmount);
+        primeTokenAddress.safeTransfer(treasuryAddress, treasuryAmount);
         
         // Update debt (need to update the recorded debt, not just subtract from current)
         uint256 recordedDebt = DiamondStorageLib.getPrimeDebt();
@@ -150,7 +161,9 @@ contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak,
     }
     
 
-    function cancelWithdrawalIntent(bytes32 _asset, uint256 intentIndex) external onlyOwner nonReentrant {
+
+
+    function cancelWithdrawalIntent(bytes32 _asset, uint256 intentIndex) external onlyWhitelistedLiquidatorsAndInsolvencySnapshotOrOwner nonReentrant {
         address tokenAddress = address(getERC20TokenInstance(_asset, true));
         DiamondStorageLib.WithdrawalIntentsStorage storage wis = DiamondStorageLib.withdrawalIntentsStorage();
         DiamondStorageLib.WithdrawalIntent[] storage intents = wis.intents[tokenAddress];
@@ -288,13 +301,26 @@ contract WithdrawalIntentFacet is IWithdrawalIntentFacet, ReentrancyGuardKeccak,
         return getAvailableBalance(_asset);
     }
 
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
+    /**
+     * @dev Allows whitelisted liquidators to cancel a PA's withdrawal intents once an
+     * insolvency snapshot is in place, so intents whose underlying token amounts are no
+     * longer available cannot remain as stale obligations blocking liquidation accounting.
+     * Owners retain unrestricted cancel rights.
+     */
+    modifier onlyWhitelistedLiquidatorsAndInsolvencySnapshotOrOwner() {
+        bool isWhitelistedLiquidator = ISmartLoanLiquidationFacet(DeploymentConstants.getDiamondAddress()).isLiquidatorWhitelisted(msg.sender);
+        if (isWhitelistedLiquidator) {
+            DiamondStorageLib.LiquidationSnapshotStorage storage ls = DiamondStorageLib.liquidationSnapshotStorage();
+            require(ls.lastInsolventTimestamp > 0, "No insolvency snapshot - call snapshotInsolvency first");
+        } else {
+            DiamondStorageLib.enforceIsContractOwner();
+        }
         _;
     }
 
     error InsufficientAvailableBalance(uint256 amount, uint256 availableBalance);
+    /* ========== ERRORS ========== */
+    error NeitherGmxOrGlv();
 
     // NEW EVENTS FOR ENHANCED MONITORING
     event FeesSweptDuringWithdrawalIntent(

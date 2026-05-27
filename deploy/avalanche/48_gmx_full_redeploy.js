@@ -11,7 +11,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     embedCommitHash("GmxV2FacetAvalanche", "./contracts/facets/avalanche");
     embedCommitHash("GmxV2PlusFacetAvalanche", "./contracts/facets/avalanche");
-    embedCommitHash("GmxV2CallbacksFacetAvalanche", "./contracts/facets/avalanche");
+    // embedCommitHash("GmxV2CallbacksFacetAvalanche", "./contracts/facets/avalanche");
 
     let GmxV2FacetAvalanche = await deploy("GmxV2FacetAvalanche", {
         from: deployer,
@@ -85,41 +85,41 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         console.error(`❌ Failed Tenderly verification for GmxV2PlusFacetAvalanche:`, error.message);
     }
 
-    let GmxV2CallbacksFacetAvalanche = await deploy("GmxV2CallbacksFacetAvalanche", {
-        from: deployer,
-        args: [],
-    });
+    // let GmxV2CallbacksFacetAvalanche = await deploy("GmxV2CallbacksFacetAvalanche", {
+    //     from: deployer,
+    //     args: [],
+    // });
 
-    console.log(
-        `GmxV2CallbacksFacetAvalanche implementation deployed at address: ${GmxV2CallbacksFacetAvalanche.address}`
-    );
+    // console.log(
+    //     `GmxV2CallbacksFacetAvalanche implementation deployed at address: ${GmxV2CallbacksFacetAvalanche.address}`
+    // );
 
-    // sleep for 10 seconds to wait for the tx to be confirmed
-    await new Promise(r => setTimeout(r, 10000));
+    // // sleep for 10 seconds to wait for the tx to be confirmed
+    // await new Promise(r => setTimeout(r, 10000));
 
-    // Regular contract verification
-    try {
-        await verifyContract(hre, {
-            address: GmxV2CallbacksFacetAvalanche.address,
-            contract: `contracts/facets/avalanche/GmxV2CallbacksFacetAvalanche.sol:GmxV2CallbacksFacetAvalanche`,
-            constructorArguments: []
-        });
-        console.log(`✅ Verified GmxV2CallbacksFacetAvalanche`);
-    } catch (error) {
-        console.error(`❌ Failed to verify GmxV2CallbacksFacetAvalanche:`, error.message);
-    }
+    // // Regular contract verification
+    // try {
+    //     await verifyContract(hre, {
+    //         address: GmxV2CallbacksFacetAvalanche.address,
+    //         contract: `contracts/facets/avalanche/GmxV2CallbacksFacetAvalanche.sol:GmxV2CallbacksFacetAvalanche`,
+    //         constructorArguments: []
+    //     });
+    //     console.log(`✅ Verified GmxV2CallbacksFacetAvalanche`);
+    // } catch (error) {
+    //     console.error(`❌ Failed to verify GmxV2CallbacksFacetAvalanche:`, error.message);
+    // }
 
-    // Tenderly verification
-    try {
-        console.log(`Tenderly verification of GmxV2CallbacksFacetAvalanche at:`, GmxV2CallbacksFacetAvalanche.address);
-        await tenderly.verify({
-            address: GmxV2CallbacksFacetAvalanche.address,
-            name: `contracts/facets/avalanche/GmxV2CallbacksFacetAvalanche.sol:GmxV2CallbacksFacetAvalanche`,
-        });
-        console.log(`✅ Tenderly verified GmxV2CallbacksFacetAvalanche`);
-    } catch (error) {
-        console.error(`❌ Failed Tenderly verification for GmxV2CallbacksFacetAvalanche:`, error.message);
-    }
+    // // Tenderly verification
+    // try {
+    //     console.log(`Tenderly verification of GmxV2CallbacksFacetAvalanche at:`, GmxV2CallbacksFacetAvalanche.address);
+    //     await tenderly.verify({
+    //         address: GmxV2CallbacksFacetAvalanche.address,
+    //         name: `contracts/facets/avalanche/GmxV2CallbacksFacetAvalanche.sol:GmxV2CallbacksFacetAvalanche`,
+    //     });
+    //     console.log(`✅ Tenderly verified GmxV2CallbacksFacetAvalanche`);
+    // } catch (error) {
+    //     console.error(`❌ Failed Tenderly verification for GmxV2CallbacksFacetAvalanche:`, error.message);
+    // }
 };
 
 module.exports.tags = ["avax-gmx-v2-redeploy"];

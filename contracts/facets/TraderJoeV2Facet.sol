@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.17;
 
-import "../OnlyOwnerOrInsolvent.sol";
+import "../PrimeAccountModifiers.sol";
 import "../ReentrancyGuardKeccak.sol";
+import "../lib/DiamondMethodsAccess.sol";
 import "../interfaces/IWrappedNativeToken.sol";
 import "../interfaces/joe-v2/ILBFactory.sol";
 import "../interfaces/joe-v2/ILBHookLens.sol";
@@ -15,7 +16,7 @@ import "../interfaces/ITokenManager.sol";
 import "../lib/local/DeploymentConstants.sol";
 import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 
-abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address payable;
     using TransferHelper for address;
 
@@ -234,7 +235,79 @@ abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, 
         emit AddLiquidityTraderJoeV2(msg.sender, address(pairInfo.LBPair), depositIds, liquidityMinted, tokenX, tokenY, amountXAdded, amountYAdded, block.timestamp);
     }
     
-    function removeLiquidityTraderJoeV2(ILBRouter traderJoeV2Router, RemoveLiquidityParameters memory parameters) external nonReentrant onlyOwnerOrInsolvent noBorrowInTheSameBlock {
+    /**
+     * @dev Unwinds a TraderJoe V2 position whose underlying pair contains at least one
+     *      token that is no longer registered in TokenManager (e.g. delisted).
+     *      The normal removeLiquidity flow reverts for such positions because the
+     *      TokenManager-dependent pricing and exposure-sync paths revert on the
+     *      unsupported token. This method burns the bins directly on the LB pair
+     *      (no router), credits both underlying tokens to the PrimeAccount, and
+     *      only calls _syncExposure for the side(s) that are still supported,
+     *      leaving the unsupported token sitting untracked in the account's balance.
+     * @param pair the LBPair holding the bins to unwind
+     * @param ids the bin ids to burn
+     * @param amounts the LB token amounts per bin to burn
+     */
+    function unwindUnsupportedTraderJoeV2Position(
+        ILBPair pair,
+        uint256[] calldata ids,
+        uint256[] calldata amounts
+    ) external nonReentrant onlyOwnerOrWhitelistedLiquidator noBorrowInTheSameBlock {
+        // Safety: only pairs the account already tracks in its bin storage may be
+        // unwound here. Those entries can only have been added via the normal
+        // fund/add flows, which enforce isPairWhitelisted at the time of entry —
+        // so `pair` is guaranteed to be a real, once-whitelisted LB pair and not
+        // an arbitrary attacker-supplied address.
+        _requirePairTracked(pair);
+
+        address tokenX = address(pair.getTokenX());
+        address tokenY = address(pair.getTokenY());
+
+        ITokenManager tokenManager = DeploymentConstants.getTokenManager();
+        bool tokenXSupported = tokenManager.isTokenAssetActive(tokenX);
+        bool tokenYSupported = tokenManager.isTokenAssetActive(tokenY);
+        if (tokenXSupported && tokenYSupported) revert BothTokensSupported();
+
+        // Burn directly on the pair; from = to = this account, so no approval is needed.
+        pair.burn(address(this), address(this), ids, amounts);
+
+        _cleanEmptyBinsFor(pair);
+
+        // Only sync exposure for supported tokens — skipping unsupported avoids the
+        // tokenAddressToSymbol revert and leaves the balance untracked on purpose.
+        if (tokenXSupported) {
+            _syncExposure(tokenManager, tokenX);
+        }
+        if (tokenYSupported) {
+            _syncExposure(tokenManager, tokenY);
+        }
+
+        emit UnwoundUnsupportedTraderJoeV2Position(msg.sender, address(pair), ids, amounts, tokenX, tokenY, block.timestamp);
+    }
+
+    function _requirePairTracked(ILBPair pair) private view {
+        TraderJoeV2Bin[] memory binsView = DiamondStorageLib.getTjV2OwnedBinsView();
+        for (uint256 i; i < binsView.length; ++i) {
+            if (address(binsView[i].pair) == address(pair)) return;
+        }
+        revert PairNotTrackedInOwnedBins();
+    }
+
+    function _cleanEmptyBinsFor(ILBPair pair) private {
+        TraderJoeV2Bin[] storage binsStorage = getOwnedTraderJoeV2BinsStorage();
+        for (int256 i; uint(i) < binsStorage.length; i++) {
+            if (address(binsStorage[uint(i)].pair) == address(pair)) {
+                TraderJoeV2Bin storage bin = binsStorage[uint(i)];
+                if (bin.pair.balanceOf(address(this), bin.id) == 0) {
+                    binsStorage[uint(i)] = binsStorage[binsStorage.length - 1];
+                    i--;
+                    binsStorage.pop();
+                }
+            }
+        }
+    }
+
+    function removeLiquidityTraderJoeV2(ILBRouter traderJoeV2Router, RemoveLiquidityParameters memory parameters) external nonReentrant onlyOwnerOrLiquidation noBorrowInTheSameBlock {
         if (!isRouterWhitelisted(address(traderJoeV2Router))) revert TraderJoeV2RouterNotWhitelisted();
         ILBPair lbPair = ILBPair(traderJoeV2Router.getFactory().getLBPairInformation(parameters.tokenX, parameters.tokenY, parameters.binStep).LBPair);
 
@@ -265,11 +338,6 @@ abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, 
         _syncExposure(tokenManager, address(parameters.tokenY));
 
         emit RemoveLiquidityTraderJoeV2(msg.sender, address(lbPair), parameters.ids, parameters.amounts, tokenX, tokenY, block.timestamp);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     /**
@@ -318,6 +386,18 @@ abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, 
      **/
     event WithdrawnLiquidityTraderJoeV2(address indexed user, address indexed pair, uint256[] binIds, uint[] amounts, uint256 timestamp);
 
+    /**
+     * @dev emitted when an unsupported TraderJoe V2 position is unwound via unwindUnsupportedTraderJoeV2Position
+     * @param user the caller (owner or whitelisted liquidator)
+     * @param pair TraderJoe V2 pair that was unwound
+     * @param binIds the bin ids burned
+     * @param amounts the LB token amounts burned per bin
+     * @param tokenX the pair's token X address
+     * @param tokenY the pair's token Y address
+     * @param timestamp time of the transaction
+     **/
+    event UnwoundUnsupportedTraderJoeV2Position(address indexed user, address indexed pair, uint256[] binIds, uint[] amounts, address tokenX, address tokenY, uint256 timestamp);
+
     error TraderJoeV2PoolNotWhitelisted();
 
     error TraderJoeV2RouterNotWhitelisted();
@@ -327,4 +407,8 @@ abstract contract TraderJoeV2Facet is ITraderJoeV2Facet, ReentrancyGuardKeccak, 
     error TraderJoeV2NoRewardHook();
 
     error IdOutOfRange();
+
+    error PairNotTrackedInOwnedBins();
+
+    error BothTokensSupported();
 }

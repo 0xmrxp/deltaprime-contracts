@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: 13fef4e5b2b14d8d4098f00a2800e22c9f6c8846;
+// Last deployed from commit: 56b7ba6f74e4dd5f903aad49110b5db8a353f45f;
 pragma solidity 0.8.17;
 
 //This path is updated during deployment
@@ -15,7 +15,7 @@ contract GmxV2FacetArbitrum is GmxV2Facet {
     }
 
     function getGmxV2ExchangeRouter() internal pure override returns (address) {
-        return 0x87d66368cD08a7Ca42252f5ab44B2fb6d1Fb8d15;
+        return 0x1C3fa76e6E1088bCE750f23a5BFcffa1efEF6A41;
     }
 
     function getGmxV2DepositVault() internal pure override returns (address) {

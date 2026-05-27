@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: 3f18be6969cfcf20cc641b51da287b780b070a86;
+// Last deployed from commit: ab0885e12c84fa9d3f0a7206af57350bca360edb;
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -9,13 +9,14 @@ import "../../interfaces/facets/IYieldYakRouter.sol";
 import "../../ReentrancyGuardKeccak.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
-import "../../lib/SolvencyMethods.sol";
+import "../../lib/DiamondMethodsAccess.sol";
 import "../../interfaces/ITokenManager.sol";
+import "../../PrimeAccountModifiers.sol";
 
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract YieldYakSwapFacet is ReentrancyGuardKeccak, SolvencyMethods {
+contract YieldYakSwapFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     struct SwapTokensDetails {
@@ -56,27 +57,14 @@ contract YieldYakSwapFacet is ReentrancyGuardKeccak, SolvencyMethods {
         });
     }
 
-    function isWhitelistedAdapterOptimized(address adapter) public virtual pure returns (bool) {
-        if (adapter == 0xDB66686Ac8bEA67400CF9E5DD6c8849575B90148) return true;  // UnilikeAdapter
-        if (adapter == 0x3614657EDc3cb90BA420E5f4F61679777e4974E3) return true;  // UnilikeAdapter
-        if (adapter == 0x3f314530a4964acCA1f20dad2D35275C23Ed7F5d) return true;  // UnilikeAdapter
-        if (adapter == 0x564C35a1647ED40850325eBf23e484bB56E75aB2) return true;  // VelodromeAdapter
-        if (adapter == 0x3EeA1f1fFCA00c69bA5a99E362D9A7d4e3902B3c) return true;  // CurvePlainAdapter
-        if (adapter == 0x29deCcD2f4Fdb046D24585d01B1DcDFb902ACAcD) return true;  // UniswapV3Adapter
-        if (adapter == 0xb94187369171f12ae28e08424BBD01424f13c659) return true;  // LB2Adapter
-        if (adapter == 0xf9F824576F06fF92765f2Af700a5A9923526261e) return true;  // LB2Adapter
-        if (adapter == 0x4efB1880Dc9B01c833a6E2824C8EadeA83E428B0) return true;  // WoofiV2Adapter
-        if (adapter == 0x2F6ca0a98CF8f7D407E98993fD576f70F0FAA80B) return true;  // SAvaxAdapter
-        if (adapter == 0x5C4d23fd18Fc4128f77426F42237acFcE618D0b1) return true;  // WAvaxAdapter
-        if (adapter == 0x7De32C76309aeB1025CBA3384caBe36326603046) return true;  // WombatAdapter
-        if (adapter == 0x97d26D7fc0895e3456b2146585848b466cfbb1cf) return true;  // RamsesV2Adapter
-        if (adapter == 0x79632b8194a1Ce048e5d9b0e282E9eE2d4579c20) return true;  // GGAvaxAdapter
-        if (adapter == 0x214617987145Ef7c5462870362FdCAe9cacdf3C8) return true;  // TokenMillAdapter
-        if (adapter == 0xDfd22ef6D509a982F4e6883CBf00d56d5d0D87F3) return true;  // UniswapV2Adapter
-        if (adapter == 0x123577a1560004D4432DC5e31F97363d0cD8A651) return true;  // BlackholeAdapter
-        if (adapter == 0xE3D2c10C2122e6f02C702064015554D468B24D6D) return true;  // AlgebraIntegralAdapter
-        if (adapter == 0x526C75aef80D3c5D19F1B9fC38e3f7EF591eaAA2) return true;  // PangolinV3Adapter
-        if (adapter == 0xA2b61cD3e656e22A41a290092eBe9a2f81ED39c5) return true;  // ApexAdapter        
+    function isWhitelistedAdapterOptimized(address adapter) public virtual view returns (bool) {
+        IYieldYakRouter router = IYieldYakRouter(YY_ROUTER());
+        uint256 count = router.adaptersCount();
+        for (uint256 i = 0; i < count; i++) {
+            if (router.ADAPTERS(i) == adapter) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -135,11 +123,6 @@ contract YieldYakSwapFacet is ReentrancyGuardKeccak, SolvencyMethods {
 
     function YY_ROUTER() internal virtual pure returns (address) {
         return 0xC4729E56b831d74bBc18797e0e17A295fA77488c;
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     /**

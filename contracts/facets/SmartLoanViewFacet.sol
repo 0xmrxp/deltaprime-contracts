@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: 13fef4e5b2b14d8d4098f00a2800e22c9f6c8846;
+// Last deployed from commit: 56b7ba6f74e4dd5f903aad49110b5db8a353f45f;
 pragma solidity 0.8.17;
 
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
@@ -12,8 +12,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../lib/local/DeploymentConstants.sol";
 import "../lib/GmxV2FeesHelper.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
+import "../PrimeAccountModifiers.sol";
 
-contract SmartLoanViewFacet is GmxV2FeesHelper {
+contract SmartLoanViewFacet is GmxV2FeesHelper, PrimeAccountModifiers {
     using TransferHelper for address payable;
     using TransferHelper for address;
 
@@ -344,7 +345,7 @@ contract SmartLoanViewFacet is GmxV2FeesHelper {
      **/
     function getAllAssetsPrices() public returns (AssetNamePrice[] memory) {
         bytes32[] memory assets = DeploymentConstants.getTokenManager().getAllTokenAssets();
-        uint256[] memory prices = SolvencyMethods.getPrices(assets);
+        uint256[] memory prices = DiamondMethodsAccess.getPrices(assets);
         AssetNamePrice[] memory result = new AssetNamePrice[](assets.length);
         for (uint i = 0; i < assets.length; i++) {
             result[i] = AssetNamePrice({
@@ -365,12 +366,5 @@ contract SmartLoanViewFacet is GmxV2FeesHelper {
 
     function getStakedPositions() external view returns (IStakingPositions.StakedPosition[] memory  _positions) {
         _positions = DiamondStorageLib.stakedPositions();
-    }
-
-    /* ========== MODIFIERS ========== */
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 }

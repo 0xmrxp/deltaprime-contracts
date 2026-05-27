@@ -1,20 +1,21 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: 671e0ff496252fbe09515497c2344519229ca2cc;
+// Last deployed from commit: 56b7ba6f74e4dd5f903aad49110b5db8a353f45f;
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "../interfaces/IWrappedNativeToken.sol";
-import "../OnlyOwnerOrInsolvent.sol";
+import "../lib/DiamondMethodsAccess.sol";
+import "../PrimeAccountModifiers.sol";
 import "../ReentrancyGuardKeccak.sol";
 
 //This path is updated during deployment
 import "../lib/local/DeploymentConstants.sol";
 
-contract SmartLoanWrappedNativeTokenFacet is OnlyOwnerOrInsolvent, ReentrancyGuardKeccak {
+contract SmartLoanWrappedNativeTokenFacet is DiamondMethodsAccess, PrimeAccountModifiers, ReentrancyGuardKeccak {
     using TransferHelper for address payable;
 
-    function wrapNativeToken(uint256 amount) onlyOwnerOrInsolvent nonReentrant public {
+    function wrapNativeToken(uint256 amount) onlyOwnerOrLiquidation nonReentrant public {
         require(amount <= address(this).balance, "Not enough native token to wrap");
         require(amount > 0, "Cannot wrap 0 tokens");
         IWrappedNativeToken wrapped = IWrappedNativeToken(DeploymentConstants.getNativeToken());
@@ -26,7 +27,7 @@ contract SmartLoanWrappedNativeTokenFacet is OnlyOwnerOrInsolvent, ReentrancyGua
         emit WrapNative(msg.sender, amount, block.timestamp);
     }
 
-    function depositNativeToken() public payable virtual {
+    function depositNativeToken() public payable virtual onlyOwner {
         IWrappedNativeToken wrapped = IWrappedNativeToken(DeploymentConstants.getNativeToken());
         wrapped.deposit{value : msg.value}();
 
@@ -36,13 +37,6 @@ contract SmartLoanWrappedNativeTokenFacet is OnlyOwnerOrInsolvent, ReentrancyGua
         emit DepositNative(msg.sender, msg.value, block.timestamp);
     }
 
-
-    /* ========== MODIFIERS ========== */
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
-    }
 
     /* ========== EVENTS ========== */
 

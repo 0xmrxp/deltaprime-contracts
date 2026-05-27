@@ -11,44 +11,44 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     embedCommitHash("GmxV2FacetArbitrum", "./contracts/facets/arbitrum");
     embedCommitHash("GmxV2PlusFacetArbitrum", "./contracts/facets/arbitrum");
-    embedCommitHash("GmxV2CallbacksFacetArbitrum", "./contracts/facets/arbitrum");
+    // embedCommitHash("GmxV2CallbacksFacetArbitrum", "./contracts/facets/arbitrum");
 
-    let GmxV2CallbacksFacetArbitrum = await deploy("GmxV2CallbacksFacetArbitrum", {
-        from: deployer,
-        args: [],
-    });
+    // let GmxV2CallbacksFacetArbitrum = await deploy("GmxV2CallbacksFacetArbitrum", {
+    //     from: deployer,
+    //     args: [],
+    // });
     
     
-    console.log(
-        `GmxV2CallbacksFacetArbitrum implementation deployed at address: ${GmxV2CallbacksFacetArbitrum.address}`
-    );
+    // console.log(
+    //     `GmxV2CallbacksFacetArbitrum implementation deployed at address: ${GmxV2CallbacksFacetArbitrum.address}`
+    // );
     
-    // sleep for 10 seconds to wait for the tx to be confirmed
-    await new Promise(r => setTimeout(r, 10000));
+    // // sleep for 10 seconds to wait for the tx to be confirmed
+    // await new Promise(r => setTimeout(r, 10000));
     
-    // Regular contract verification
-    try {
-        await verifyContract(hre, {
-            address: GmxV2CallbacksFacetArbitrum.address,
-            contract: `contracts/facets/arbitrum/GmxV2CallbacksFacetArbitrum.sol:GmxV2CallbacksFacetArbitrum`,
-            constructorArguments: []
-        });
-        console.log(`✅ Verified GmxV2CallbacksFacetArbitrum`);
-    } catch (error) {
-        console.error(`❌ Failed to verify GmxV2CallbacksFacetArbitrum:`, error.message);
-    }
+    // // Regular contract verification
+    // try {
+    //     await verifyContract(hre, {
+    //         address: GmxV2CallbacksFacetArbitrum.address,
+    //         contract: `contracts/facets/arbitrum/GmxV2CallbacksFacetArbitrum.sol:GmxV2CallbacksFacetArbitrum`,
+    //         constructorArguments: []
+    //     });
+    //     console.log(`✅ Verified GmxV2CallbacksFacetArbitrum`);
+    // } catch (error) {
+    //     console.error(`❌ Failed to verify GmxV2CallbacksFacetArbitrum:`, error.message);
+    // }
     
-    // Tenderly verification
-    try {
-        console.log(`Tenderly verification of GmxV2CallbacksFacetArbitrum at:`, GmxV2CallbacksFacetArbitrum.address);
-        await tenderly.verify({
-            address: GmxV2CallbacksFacetArbitrum.address,
-            name: `contracts/facets/arbitrum/GmxV2CallbacksFacetArbitrum.sol:GmxV2CallbacksFacetArbitrum`,
-        });
-        console.log(`✅ Tenderly verified GmxV2CallbacksFacetArbitrum`);
-    } catch (error) {
-        console.error(`❌ Failed Tenderly verification for GmxV2CallbacksFacetArbitrum:`, error.message);
-    }
+    // // Tenderly verification
+    // try {
+    //     console.log(`Tenderly verification of GmxV2CallbacksFacetArbitrum at:`, GmxV2CallbacksFacetArbitrum.address);
+    //     await tenderly.verify({
+    //         address: GmxV2CallbacksFacetArbitrum.address,
+    //         name: `contracts/facets/arbitrum/GmxV2CallbacksFacetArbitrum.sol:GmxV2CallbacksFacetArbitrum`,
+    //     });
+    //     console.log(`✅ Tenderly verified GmxV2CallbacksFacetArbitrum`);
+    // } catch (error) {
+    //     console.error(`❌ Failed Tenderly verification for GmxV2CallbacksFacetArbitrum:`, error.message);
+    // }
 
     let GmxV2PlusFacetArbitrum = await deploy("GmxV2PlusFacetArbitrum", {
         from: deployer,

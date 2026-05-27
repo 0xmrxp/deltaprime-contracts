@@ -726,6 +726,48 @@ describe("SolvencyFacetProd Comprehensive Tests", () => {
       console.log("✅ TraderJoe V2 liquidity addition successful!");
     });
 
+    it("should not double-count TJv2 bin tokens that are also owned assets", async () => {
+      // TJv2 tokenX / tokenY prices must not be appended to
+      // CachedPrices.ownedAssetsPrices, or _getTotalAssetsValueBase and
+      // _getTWVOwnedAssets would iterate over the owned balance twice for any
+      // token that is both owned and in a bin. Here the PA owns AVAX + USDC and
+      // has an AVAX/USDC TJv2 bin — maximum overlap.
+
+      const tjv2PositionsNow = await wrappedLoan.getOwnedTraderJoeV2Bins();
+      expect(tjv2PositionsNow.length).to.be.gt(
+        0,
+        "Precondition: expected an active TJv2 bin from the previous test"
+      );
+
+      const totalValue = await wrappedLoan.getTotalValue();
+      const totalAssetsValue = await wrappedLoan.getTotalAssetsValue();
+      const stakedValue = await wrappedLoan.getStakedValue();
+      const tjv2Value = await wrappedLoan.getTotalTraderJoeV2();
+
+      const recomposed = totalAssetsValue.add(stakedValue).add(tjv2Value);
+
+      // Tight invariant: with the fix, these must match to the wei.
+      // With the bug, getTotalValue is inflated by balance*price of the
+      // overlapping tokens (AVAX and USDC here).
+      expect(totalValue).to.equal(
+        recomposed,
+        "getTotalValue must equal getTotalAssetsValue + getStakedValue + getTotalTraderJoeV2"
+      );
+
+      // Additional shape check: getAllPricesForLiquidation should return
+      // ownedAssetsPrices sized exactly to the owned-assets count (not owned + TJv2).
+      const cached = await wrappedLoan.getAllPricesForLiquidation([]);
+      const ownedWithNative = await wrappedLoan.getOwnedAssetsWithNative();
+      expect(cached.ownedAssetsPrices.length).to.equal(
+        ownedWithNative.length,
+        "ownedAssetsPrices must not include TJv2 tokens"
+      );
+      expect(cached.tjv2TokenPrices.length).to.be.gt(
+        0,
+        "tjv2TokenPrices should carry bin-token prices for findPriceInCachedPrices"
+      );
+    });
+
     it("should remove liquidity from TraderJoe V2 AVAX/USDC pair and maintain solvency", async () => {
       console.log("\n=== TRADERJOE V2 LIQUIDITY REMOVAL TEST ===");
 

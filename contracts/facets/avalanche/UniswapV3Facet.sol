@@ -2,18 +2,21 @@
 pragma solidity 0.8.17;
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/joe-v2/ILBRouter.sol";
 import "../../interfaces/joe-v2/ILBFactory.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../lib/uniswap-v3/OracleLibrary.sol";
-import "@redstone-finance/evm-connector/contracts/data-services/AvalancheDataServiceConsumerBase.sol";
+import "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 import "../../interfaces/uniswap-v3-periphery/INonfungiblePositionManager.sol";
+import {IUniswapV3Facet} from "../../interfaces/facets/avalanche/IUniswapV3Facet.sol";
 
-contract UniswapV3Facet is IUniswapV3Facet, AvalancheDataServiceConsumerBase, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract UniswapV3Facet is IUniswapV3Facet, PrimaryProdDataServiceConsumerBase, ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
 
     address private constant NONFUNGIBLE_POSITION_MANAGER_ADDRESS = 0x655C406EBFa14EE2006250925e54ec43AD184f8B;
     address private constant UNISWAP_V3_FACTORY_ADDRESS = 0x740b1c1de25031C31FF4fC9A62f554A55cdC1baD;
@@ -180,7 +183,7 @@ contract UniswapV3Facet is IUniswapV3Facet, AvalancheDataServiceConsumerBase, Re
         emit IncreaseLiquidityUniswapV3(msg.sender, poolAddress, params.tokenId, token0, token1, amount0, amount1, block.timestamp);
     }
 
-    function decreaseLiquidityUniswapV3(INonfungiblePositionManager.DecreaseLiquidityParams memory params) external nonReentrant noBorrowInTheSameBlock onlyOwnerOrInsolvent {
+    function decreaseLiquidityUniswapV3(INonfungiblePositionManager.DecreaseLiquidityParams memory params) external nonReentrant noBorrowInTheSameBlock onlyOwnerOrLiquidation {
         (
         ,,
         address token0Address,
@@ -231,7 +234,7 @@ contract UniswapV3Facet is IUniswapV3Facet, AvalancheDataServiceConsumerBase, Re
         emit DecreaseLiquidityUniswapV3(msg.sender, poolAddress, params.tokenId, token0, token1, amount0, amount1, block.timestamp);
     }
 
-    function burnLiquidityUniswapV3(uint256 tokenId) external nonReentrant noBorrowInTheSameBlock onlyOwnerOrInsolvent {
+    function burnLiquidityUniswapV3(uint256 tokenId) external nonReentrant noBorrowInTheSameBlock onlyOwnerOrLiquidation {
         uint256[] storage tokenIds = getTokenIds();
         for (uint256 i; i < tokenIds.length; i++) {
             if (tokenIds[i] == tokenId) {
@@ -271,11 +274,6 @@ contract UniswapV3Facet is IUniswapV3Facet, AvalancheDataServiceConsumerBase, Re
         _syncExposure(DeploymentConstants.getTokenManager(), token1Address);
 
         emit CollectFeesUniswapV3(msg.sender, tokenId, collected0, collected1, block.timestamp);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     // pool must be whitelisted

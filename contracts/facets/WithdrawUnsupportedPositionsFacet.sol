@@ -9,14 +9,16 @@ import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 import {LeverageTierLib} from "../lib/LeverageTierLib.sol";
 import "../interfaces/ITokenManager.sol";
 import "../ReentrancyGuardKeccak.sol";
-import "../lib/SolvencyMethods.sol";
+import "../lib/DiamondMethodsAccess.sol";
 import "../lib/local/DeploymentConstants.sol";
 import "../interfaces/IWithdrawUnsupportedPositionsFacet.sol";
+import "../PrimeAccountModifiers.sol";
 
-contract WithdrawUnsupportedPositionsFacet is 
-    ReentrancyGuardKeccak, 
-    SolvencyMethods, 
-    IWithdrawUnsupportedPositionsFacet 
+contract WithdrawUnsupportedPositionsFacet is
+    ReentrancyGuardKeccak,
+    DiamondMethodsAccess,
+    IWithdrawUnsupportedPositionsFacet,
+    PrimeAccountModifiers
 {
     using SafeERC20 for IERC20Metadata;
 
@@ -127,10 +129,5 @@ contract WithdrawUnsupportedPositionsFacet is
         if (premiumTierCov != 0) {
             revert AssetHasPremiumTierDebtCoverage(assetAddress, premiumTierCov);
         }
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 }

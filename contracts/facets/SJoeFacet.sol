@@ -4,10 +4,11 @@ pragma solidity 0.8.17;
 import "../interfaces/joe-v2/IStableJoeStaking.sol";
 import "../interfaces/facets/ISJoeFacet.sol";
 import {ReentrancyGuardKeccak} from "../ReentrancyGuardKeccak.sol";
-import "../OnlyOwnerOrInsolvent.sol";
+import "../lib/DiamondMethodsAccess.sol";
+import "../PrimeAccountModifiers.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 
-contract SJoeFacet is ISJoeFacet, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract SJoeFacet is ISJoeFacet, ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     address private constant SJOE_ADDRESS = 0x1a731B2299E22FbAC282E7094EdA41046343Cb51;
@@ -54,7 +55,7 @@ contract SJoeFacet is ISJoeFacet, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         emit ClaimedSJoeRewards(msg.sender, REWARD_TOKEN_ADDRESS, claimed, block.timestamp);
     }
 
-    function unstakeJoe(uint256 amount) public onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock {
+    function unstakeJoe(uint256 amount) public onlyOwnerOrLiquidation nonReentrant noBorrowInTheSameBlock {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         IERC20Metadata rewardToken = IERC20Metadata(REWARD_TOKEN_ADDRESS);
 
@@ -131,10 +132,5 @@ contract SJoeFacet is ISJoeFacet, ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
 
         address(REWARD_TOKEN_ADDRESS).safeTransfer(DeploymentConstants.getTreasuryAddress(), treasuryTransferAmount);
         emit SJoeRewardFeeTreasuryTransfer(DeploymentConstants.getTreasuryAddress(), rewardTokenSymbol, treasuryTransferAmount, block.timestamp);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 }

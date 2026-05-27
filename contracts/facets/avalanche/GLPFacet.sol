@@ -9,13 +9,14 @@ import "../../interfaces/facets/avalanche/IRewardRouterV2.sol";
 import "../../interfaces/facets/avalanche/IRewardTracker.sol";
 import "../../ReentrancyGuardKeccak.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import "../../interfaces/ITokenManager.sol";
 
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract GLPFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract GLPFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     // Used to claim GLP fees
@@ -87,7 +88,7 @@ contract GLPFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
 
     }
 
-    function unstakeAndRedeemGlp(address _tokenOut, uint256 _glpAmount, uint256 _minOut) external nonReentrant onlyOwnerOrInsolvent noBorrowInTheSameBlock    {
+    function unstakeAndRedeemGlp(address _tokenOut, uint256 _glpAmount, uint256 _minOut) external nonReentrant onlyOwnerOrLiquidation noBorrowInTheSameBlock    {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         require(tokenManager.isTokenAssetActive(_tokenOut), "Asset not supported.");
 
@@ -117,11 +118,6 @@ contract GLPFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
             block.timestamp
         );
 
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     /**

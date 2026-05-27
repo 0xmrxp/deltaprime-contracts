@@ -9,17 +9,20 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
 import {DiamondStorageLib} from "../lib/DiamondStorageLib.sol";
 import {LeverageTierLib} from "../lib/LeverageTierLib.sol";
 import "../lib/GmxV2FeesHelper.sol";
-import "../OnlyOwnerOrInsolvent.sol";
+import {GlvHelper} from "../lib/GlvHelper.sol";
+import {GmxBenchmarkMath} from "../lib/GmxBenchmarkMath.sol";
+import "../PrimeAccountModifiers.sol";
 import "../interfaces/ITokenManager.sol";
 import "../interfaces/IVPrimeController.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
+import {IGlvReader} from "../interfaces/gmx-v2/IGlvReader.sol";
 import "./SmartLoanLiquidationFacet.sol";
 import "../interfaces/facets/IYieldYakRouter.sol";
 
 //this path is updated during deployment
 import "../lib/local/DeploymentConstants.sol";
 
-contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, GmxV2FeesHelper {
+contract AssetsOperationsFacet is ReentrancyGuardKeccak, PrimeAccountModifiers, GmxV2FeesHelper, GlvHelper {
     using TransferHelper for address payable;
     using TransferHelper for address;
 
@@ -28,7 +31,21 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
     address private constant PARA_ROUTER =
         0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57;
 
+    /**
+     * @dev Restricts `fund()` to the loan owner or the SmartLoansFactory. The factory needs
+     *      access because `createAndFundLoan` calls `fund()` via a low-level call on the
+     *      freshly-created loan, so `msg.sender` is the factory address rather than the EOA.
+     */
+    modifier onlyOwnerOrFactory() {
+        if (msg.sender != DeploymentConstants.getSmartLoansFactoryAddress()) {
+            DiamondStorageLib.enforceIsContractOwner();
+        }
+        _;
+    }
+
     /* ========== PUBLIC AND EXTERNAL MUTATIVE FUNCTIONS ========== */
+    
+    
 
     /**
     * Removes an asset from the ownedAssets array
@@ -38,17 +55,7 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
     function removeUnsupportedOwnedAsset(bytes32 _asset, address _address) external onlyWhitelistedLiquidators nonReentrant {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
 
-        // Check if the asset exists in the TokenManager
-        require(tokenManager.tokenToStatus(_address) == 0, "Asset is still supported");
-        require(tokenManager.tokenAddressToSymbol(_address) == bytes32(0), "Asset address to symbol not empty");
-        require(tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), _address) == 0, "Asset still has debt coverage");
-        require(tokenManager.identifierToExposureGroup(_asset) == bytes32(0), "Asset still has exposure group");
-
-        bytes32[] memory allAssets = tokenManager.getAllTokenAssets();
-        // Loop through all assets and check if the asset exists
-        for (uint i = 0; i < allAssets.length; i++) {
-            require(allAssets[i] != _asset, "Asset exists in TokenManager");
-        }
+        _validateAssetRemoval(tokenManager, _address, _asset);
 
         // Remove the asset from the ownedAssets array
         DiamondStorageLib.removeOwnedAsset(_asset);
@@ -69,16 +76,12 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
                 break;
             }
         }
-        require(found, "Position not found");
+        if(!found) revert PositionNotFound();
 
         address _address = stakedPosition.asset;
         bytes32 _symbol = stakedPosition.symbol;
-        bytes32 _identifier = stakedPosition.identifier;
 
-        // Check if the identifier has debtCoverageStaked > 0
-        require(tokenManager.tieredDebtCoverageStaked(LeverageTierLib.LeverageTier.BASIC, _identifier) == 0, "SP identifier still has debt coverage > 0");
-        require(tokenManager.tieredDebtCoverageStaked(LeverageTierLib.LeverageTier.PREMIUM, _identifier) == 0, "SP identifier still has debt coverage > 0");
-        require(tokenManager.debtCoverageStaked(_identifier) == 0, "SP identifier still has debt coverage > 0");
+        _validateAssetRemoval(tokenManager, _address, _symbol);
 
         DiamondStorageLib.removeStakedPosition(_identifier);
 
@@ -91,7 +94,7 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
     * @param _fundedAsset asset to be funded
     * @param _amount to be funded
     **/
-    function fund(bytes32 _fundedAsset, uint256 _amount) public virtual noBorrowInTheSameBlock nonReentrant {
+    function fund(bytes32 _fundedAsset, uint256 _amount) public virtual onlyOwnerOrFactory noBorrowInTheSameBlock nonReentrant {
         IERC20Metadata token = getERC20TokenInstance(_fundedAsset, false);
         _amount = Math.min(_amount, token.balanceOf(msg.sender));
 
@@ -99,70 +102,117 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
         GmxTokenPrices memory gmxTokenPrices;
         uint256 feesCollected = 0;
         
-        if(tokenManager.isGmxMarketWhitelisted(address(token))) {
+        if(tokenManager.isGmxMarketWhitelisted(address(token)) || tokenManager.isGlvTokenWhitelisted(address(token))) {
             DiamondStorageLib.GmxPositionBenchmark memory benchmark = DiamondStorageLib.getGmxPositionBenchmark(address(token));
             if(benchmark.exists) {
-                // OPTIMIZED: Use inherited method from GmxV2FeesHelper
-                gmxTokenPrices = _getGmxTokenPrices(address(token));
+                if(tokenManager.isGlvTokenWhitelisted(address(token))){
+                    UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGlvTokenPricesAndAddresses(address(token));
+                    gmxTokenPrices = GmxTokenPrices({
+                    gmTokenPrice: pricesAndAddresses.gmTokenPrice,
+                    longTokenPrice: pricesAndAddresses.longTokenPrice,
+                    shortTokenPrice: pricesAndAddresses.shortTokenPrice
+                    });
+                } else  { // isGmxMarketWhitelisted
+                    gmxTokenPrices = _getGmxTokenPrices(address(token));    
+                } 
+                // Capture the pre-sweep balance so the benchmark can be scaled down
+                // proportionally after the fee tokens leave the PA. Without scaling, the
+                // benchmark would still reflect the pre-sweep position size and the
+                // additive update below would leave a stale performance residual that
+                // gets re-charged on the next sweep.
+                uint256 preSweepBalance = IERC20(token).balanceOf(address(this));
                 feesCollected = _sweepFees(address(token), gmxTokenPrices);
                 if (feesCollected > 0) {
+                    DiamondStorageLib.scaleGmxPositionBenchmark(
+                        address(token),
+                        preSweepBalance - feesCollected,
+                        preSweepBalance
+                    );
                     emit FeesSweptDuringFunding(address(token), feesCollected, _fundedAsset, _amount, block.timestamp);
                 }
-            } 
+            }
         }
 
         address(token).safeTransferFrom(msg.sender, address(this), _amount);
 
         _syncExposure(tokenManager, address(token));
-        _createOrUpdateBenchmarkIfGmToken(address(token), _amount, gmxTokenPrices);
+        if(tokenManager.isGmxMarketWhitelisted(address(token)) || tokenManager.isGlvTokenWhitelisted(address(token))) {
+            //Use unified method for both GMX and GLV tokens
+            _createOrUpdateBenchmarkIfGmOrGlvToken(address(token), _amount, gmxTokenPrices);
+        }
 
         emit Funded(msg.sender, _fundedAsset, _amount, block.timestamp);
     }
 
-    // OPTIMIZED: Use unified method for creating benchmark - reuses market token logic
-    function _createOrUpdateBenchmarkIfGmToken(address _token, uint256 _amount, GmxTokenPrices memory gmxTokenPrices) internal {
+    /**
+     * @dev Compute the underlying-token deltas attributable to `_amount` of GM/GLV tokens
+     *      being funded in, then extend the benchmark additively. The benchmark is never
+     *      overwritten here: a dust fund() call must not be able to erase an
+     *      unrealized-gain cost basis.
+     */
+    function _createOrUpdateBenchmarkIfGmOrGlvToken(address _token, uint256 _amount, GmxTokenPrices memory gmxTokenPrices) internal {
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
+        UnifiedGmxTokenPricesAndAddresses memory unified;
+        uint256 longTokenAmount;
+        uint256 shortTokenAmount;
+        if (tokenManager.isGlvTokenWhitelisted(_token)) {
+            unified = _getUnifiedGlvTokenPricesAndAddresses(_token);
+            // For GLV tokens we compute the delta contribution from just `_amount`, not the
+            // full post-fund balance. This keeps the additive update semantically consistent
+            // with the GM branch below.
+            (longTokenAmount, shortTokenAmount) = _getGlvLongAndShortTokenAmounts(_token, _amount);
 
-        if (tokenManager.isGmxMarketWhitelisted(_token)) {
+        } else if (tokenManager.isGmxMarketWhitelisted(_token)) {
             // Use the unified method to get both addresses and avoid duplicate calls
-            UnifiedGmxTokenPricesAndAddresses memory unified = _getUnifiedGmxTokenPricesAndAddresses(_token);
-            
-            uint256 totalGmSupply = IERC20(_token).totalSupply();
-            uint256 longTokenAmount = (_amount * IERC20(unified.longToken).balanceOf(_token)) / totalGmSupply;
-            uint256 shortTokenAmount = (_amount * IERC20(unified.shortToken).balanceOf(_token)) / totalGmSupply;
+            unified = _getUnifiedGmxTokenPricesAndAddresses(_token);
 
-            if(unified.isPlusMarket) {
-                shortTokenAmount = 0; // to avoid double counting of underlying token amounts
-                gmxTokenPrices.shortTokenPrice = 0; // to avoid double counting of tokenPriceUSD 
-            }
-
-            GmxPositionDetails memory positionDetails = GmxPositionDetails({
-                underlyingLongTokenAmount: longTokenAmount,
-                underlyingShortTokenAmount: shortTokenAmount,
-                gmTokenPriceUsd: gmxTokenPrices.gmTokenPrice,
-                longTokenPriceUsd: gmxTokenPrices.longTokenPrice,
-                shortTokenPriceUsd: gmxTokenPrices.shortTokenPrice,
-                benchmarkTimeStamp: block.timestamp,
-                longTokenAddress: unified.longToken,
-                shortTokenAddress: unified.shortToken
-            });
-            _createOrUpdatePositionBenchmark(_token, positionDetails);
-            
-            emit BenchmarkCreatedOrUpdatedViaFunding(
+            // Use premium-scaled pro-rata for the funded delta, matching the invariant
+            // `longAmt * longPrice + shortAmt * shortPrice == _amount * gmPrice` that
+            // `_getUnderlyingTokenDetails` and the GLV branch already maintain. The math
+            // is delegated to the external `GmxBenchmarkMath` library to keep this facet
+            // under the 24 KB code-size limit.
+            (longTokenAmount, shortTokenAmount) = GmxBenchmarkMath.premiumScaledUnderlying(
                 _token,
                 _amount,
-                longTokenAmount,
-                shortTokenAmount,
-                unified.isPlusMarket,
-                block.timestamp
+                unified.longToken,
+                unified.shortToken,
+                gmxTokenPrices.gmTokenPrice,
+                gmxTokenPrices.longTokenPrice,
+                gmxTokenPrices.shortTokenPrice,
+                unified.isPlusMarket
             );
+
+            if(unified.isPlusMarket) {
+                gmxTokenPrices.shortTokenPrice = 0; // to avoid double counting of tokenPriceUSD
+            }
+
         }
+        GmxPositionDetails memory positionDetails = GmxPositionDetails({
+            underlyingLongTokenAmount: longTokenAmount,
+            underlyingShortTokenAmount: shortTokenAmount,
+            gmTokenPriceUsd: gmxTokenPrices.gmTokenPrice,
+            longTokenPriceUsd: gmxTokenPrices.longTokenPrice,
+            shortTokenPriceUsd: gmxTokenPrices.shortTokenPrice,
+            benchmarkTimeStamp: block.timestamp,
+            longTokenAddress: unified.longToken,
+            shortTokenAddress: unified.shortToken
+        });
+        _addToBenchmarkFromFunding(_token, positionDetails, _amount);
+
+        emit BenchmarkCreatedOrUpdatedViaFunding(
+            _token,
+            _amount,
+            longTokenAmount,
+            shortTokenAmount,
+            unified.isPlusMarket,
+            block.timestamp
+        );
     }
 
     function addOwnedAsset(bytes32 _asset, address _address) external onlyWhitelistedLiquidators nonReentrant{
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
-        require(tokenManager.tokenAddressToSymbol(_address) == _asset, "Asset address/symbol mismatch");
-        require(tokenManager.isTokenAssetActive(_address), "Asset not supported");
+        if(tokenManager.tokenAddressToSymbol(_address) != _asset) revert AssetAddressSymbolMismatch();
+        if(!tokenManager.isTokenAssetActive(_address)) revert AssetNotSupported();
 
         DiamondStorageLib.addOwnedAsset(_asset, _address);
         
@@ -184,7 +234,7 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
     * @dev Requires approval for stakedGLP token on frontend side
     * @param _amount to be funded
     **/
-    function fundGLP(uint256 _amount) public virtual noBorrowInTheSameBlock nonReentrant {
+    function fundGLP(uint256 _amount) public virtual onlyOwner noBorrowInTheSameBlock nonReentrant {
         IERC20Metadata stakedGlpToken = IERC20Metadata(0xaE64d55a6f09E4263421737397D1fdFA71896a69);
         _amount = Math.min(_amount, stakedGlpToken.balanceOf(msg.sender));
         address(stakedGlpToken).safeTransferFrom(msg.sender, address(this), _amount);
@@ -235,7 +285,7 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
     function repay(bytes32 _asset, uint256 _amount) public payable  noBorrowInTheSameBlock nonReentrant notInLiquidation {
         IERC20Metadata token = getERC20TokenInstance(_asset, true);
 
-        require(_getAvailableBalance(_asset) >= _amount, "Insufficient balance");
+        if(_getAvailableBalance(_asset) < _amount) revert InsufficientBalance();
 
         if (_isSolvent()) {
             DiamondStorageLib.enforceIsContractOwner();
@@ -268,11 +318,11 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
 
         // _NOT_SUPPORTED = 0
-        require(tokenManager.tokenToStatus(token) == 0, "token supported");
-        require(tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), token) == 0, "token debt coverage != 0");
-
+        if(tokenManager.tokenToStatus(token) != 0) revert AssetStillSupported();
+        if(tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), token) != 0) revert AssetHasDebtCoverage();
+        
         uint256 balance = IERC20(token).balanceOf(address(this));
-        require(balance > 0, "nothing to withdraw");
+        if(balance <= 0) revert ZeroBalance();
         token.safeTransfer(msg.sender, balance);
 
         emit WithdrawUnsupportedToken(msg.sender, token, balance, block.timestamp);
@@ -294,6 +344,20 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
             )
         }
         return hasValidRedstoneMarker;
+    }
+
+    function _validateAssetRemoval(ITokenManager tokenManager, address _address, bytes32 _symbol) internal view {
+        // Check if the asset exists in the TokenManager
+        if(tokenManager.tokenToStatus(_address) != 0) revert AssetStillSupported();
+        if(tokenManager.tokenAddressToSymbol(_address) != bytes32(0)) revert AssetAddressToSymbolNotEmpty();
+        if(tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), _address) != 0) revert AssetHasDebtCoverage();
+        if(tokenManager.identifierToExposureGroup(_symbol) != bytes32(0)) revert AssetHasExposureGroup();
+
+        bytes32[] memory allAssets = tokenManager.getAllTokenAssets();
+        // Loop through all assets and check if the asset exists
+        for (uint i = 0; i < allAssets.length; i++) {
+            if(allAssets[i] == _symbol) revert AssetExistsInTokenManager();
+        }
     }
 
     function getVPrimeControllerAddress(ITokenManager tokenManager) internal view returns (address) {
@@ -330,12 +394,16 @@ contract AssetsOperationsFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, G
         return token.balanceOf(address(this));
     }
 
-    /* ========== MODIFIERS ========== */
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
-    }
+    /* ========== ERRORS ========== */
+    error AssetStillSupported();
+    error AssetAddressToSymbolNotEmpty();
+    error AssetHasDebtCoverage();
+    error AssetHasExposureGroup();
+    error AssetExistsInTokenManager();
+    error PositionNotFound();
+    error AssetAddressSymbolMismatch();
+    error AssetNotSupported();
+    error ZeroBalance();
 
     /* ========== EVENTS ========== */
 

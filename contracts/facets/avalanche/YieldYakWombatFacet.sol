@@ -2,7 +2,8 @@
 pragma solidity 0.8.17;
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../interfaces/facets/avalanche/IWombatPool.sol";
 import "../../interfaces/facets/avalanche/IYYWombatPool.sol";
@@ -15,7 +16,7 @@ import "../../interfaces/IWrappedNativeToken.sol";
 //This path is updated during deployment
 import "../../lib/local/DeploymentConstants.sol";
 
-contract YieldYakWombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract YieldYakWombatFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     address public constant WOM_TOKEN =
@@ -360,7 +361,7 @@ contract YieldYakWombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         address pool,
         uint256 amount,
         uint256 minOut
-    ) internal onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
+    ) internal onlyOwnerOrLiquidation nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
         IERC20Metadata fromToken = getERC20TokenInstance(fromAsset, false);
         IERC20Metadata toToken = getERC20TokenInstance(toAsset, false);
         IERC20Metadata wombatLpToken = getERC20TokenInstance(wombatLpAsset, false);
@@ -465,7 +466,7 @@ contract YieldYakWombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         address pool,
         uint256 amount,
         uint256 minOut
-    ) internal onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
+    ) internal onlyOwnerOrLiquidation nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
         IERC20Metadata fromToken = getERC20TokenInstance(fromAsset, false);
         IWrappedNativeToken wrapped = IWrappedNativeToken(
             DeploymentConstants.getNativeToken()
@@ -569,11 +570,6 @@ contract YieldYakWombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         address lpToken = _getYRT(asset);
         uint256 balance = IERC20Metadata(lpToken).balanceOf(address(this));
         return IYYWombatPool(lpToken).getDepositTokensForShares(balance);
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     /* ========== RECEIVE AVAX FUNCTION ========== */

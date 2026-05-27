@@ -64,6 +64,21 @@ const PRIME_ACCOUNT_ABI = [
 ];
 
 class FeeSweeper {
+  // Retry helper with exponential backoff
+  async withRetry(fn, { maxRetries = 5, baseDelay = 3000, label = 'operation' } = {}) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === maxRetries) throw error;
+        const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
+        console.log(`    Retry ${attempt}/${maxRetries} for ${label} after error: ${error.message?.slice(0, 120)}`);
+        console.log(`    Waiting ${(delay / 1000).toFixed(1)}s before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
   constructor() {
     // Check for private key
     if (!process.env.LIQUIDATOR_PRIVATE_KEY) {
@@ -190,7 +205,10 @@ class FeeSweeper {
     
     try {
       const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, provider);
-      const primeAccounts = await factory.getAllLoans();
+      const primeAccounts = await this.withRetry(
+        () => factory.getAllLoans(),
+        { maxRetries: 5, baseDelay: 5000, label: `${chainName} getAllLoans` }
+      );
       console.log(`Found ${primeAccounts.length} prime accounts on ${chainName}`);
       return primeAccounts;
     } catch (error) {
@@ -234,15 +252,28 @@ class FeeSweeper {
     const primeContract = new ethers.Contract(account, PRIME_ACCOUNT_ABI, wallet);
     const wrappedContract = wrapFunction(primeContract);
 
-    // Send transaction (ethers will handle gas estimation)
+    // Send transaction ONCE — do NOT retry submission to avoid duplicates
     console.log(`    Sending transaction...`);
     const tx = await wrappedContract.sweepFeesAndUpdateBenchMark(gmTokenAddress);
 
     console.log(`    TX submitted: ${tx.hash}`);
     console.log(`    Waiting for confirmation...`);
 
-    // Wait for transaction to be mined
-    const receipt = await tx.wait(1);
+    // Wait for receipt with retries (TX already sent, safe to retry wait)
+    let receipt;
+    try {
+      receipt = await this.withRetry(
+        () => tx.wait(1),
+        { maxRetries: 10, baseDelay: 10000, label: 'tx receipt' }
+      );
+    } catch (error) {
+      // Receipt fetch failed after all retries, but TX was sent — mark as processed
+      // to avoid re-sending on next run
+      console.log(`    Could not get receipt after retries, but TX was sent.`);
+      console.log(`    Marking as processed to avoid duplicate TX.`);
+      await this.markProcessed(chain, account, gmTokenAddress, tx.hash);
+      return { success: true, txHash: tx.hash, blockNumber: null };
+    }
 
     if (receipt.status === 1) {
       console.log(`    Success! Block: ${receipt.blockNumber}`);
@@ -341,8 +372,8 @@ class FeeSweeper {
             await this.markInsolvent(chainName, account, tokenAddress);
             // Continue processing other tokens
           } else {
-            // Any other error should stop the script
-            throw error;
+            console.error(`    Error processing ${tokenKey}: ${error.message?.slice(0, 200)}`);
+            console.log(`    Continuing to next token...`);
           }
         }
 

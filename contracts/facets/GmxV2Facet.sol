@@ -3,11 +3,13 @@
 pragma solidity 0.8.17;
 
 import "../ReentrancyGuardKeccak.sol";
-import "../OnlyOwnerOrInsolvent.sol";
+import "../PrimeAccountModifiers.sol";
 import "../lib/GmxV2FeesHelper.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
 
-abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, GmxV2FeesHelper {
+
+
+abstract contract GmxV2Facet is ReentrancyGuardKeccak, PrimeAccountModifiers, GmxV2FeesHelper {
 
     using TransferHelper for address;
 
@@ -30,11 +32,13 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
         if (executionFee != msg.value) revert InvalidExecutionFee();
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         if (!tokenManager.isGmxMarketWhitelisted(gmToken)) revert MarketNotWhitelisted();
+        if(!tokenManager.isTokenAssetActive(depositedToken)) revert DepositTokenInactive();
 
         tokenAmount = IERC20(depositedToken).balanceOf(address(this)) < tokenAmount
             ? IERC20(depositedToken).balanceOf(address(this))
             : tokenAmount;
 
+        if (tokenAmount == 0) revert ZeroDepositAmount();
         if (_getAvailableBalancePayable(tokenManager.tokenAddressToSymbol(depositedToken)) < tokenAmount) revert InsufficientBalance();
         
         UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGmxTokenPricesAndAddresses(gmToken);
@@ -82,7 +86,7 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
                     minMarketTokens: minGmAmount,
                     shouldUnwrapNativeToken: false,
                     executionFee: executionFee,
-                    callbackGasLimit: 500000,
+                    callbackGasLimit: 600000,
                     dataList: new bytes32[](0)
                 })
             );
@@ -132,14 +136,19 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
         emit DepositInitiated(gmToken, depositedToken, tokenAmount, minGmAmount, executionFee, block.timestamp);
     }
 
+    ///@dev internal helper function to save size
+    function _toGmxTokenPrices(UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses)
+        internal
+        pure
+        returns (GmxTokenPrices memory)
+    {
+        return GmxTokenPrices(pricesAndAddresses.gmTokenPrice, pricesAndAddresses.longTokenPrice, pricesAndAddresses.shortTokenPrice);
+    }
+
     ///@dev to be called by the bots, sweeps fees and updates the benchmark
     function sweepFeesAndUpdateBenchMark(address gmToken) external nonReentrant onlyWhitelistedLiquidators remainsSolvent returns (uint256 gmTokensInFees) {
         UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGmxTokenPricesAndAddresses(gmToken);
-        GmxTokenPrices memory gmxTokenPrices = GmxTokenPrices({
-            gmTokenPrice: pricesAndAddresses.gmTokenPrice,
-            longTokenPrice: pricesAndAddresses.longTokenPrice,
-            shortTokenPrice: pricesAndAddresses.shortTokenPrice
-        });
+        GmxTokenPrices memory gmxTokenPrices = _toGmxTokenPrices(pricesAndAddresses);
 
         gmTokensInFees = _sweepFees(gmToken, gmxTokenPrices);
         _updatePositionBenchmark(gmToken, pricesAndAddresses);
@@ -148,11 +157,7 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
     }
 
     function _updatePositionBenchmark(address market, UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses) internal {
-        GmxTokenPrices memory gmxTokenPrices = GmxTokenPrices({
-            gmTokenPrice: pricesAndAddresses.gmTokenPrice,
-            longTokenPrice: pricesAndAddresses.longTokenPrice,
-            shortTokenPrice: pricesAndAddresses.shortTokenPrice
-        });
+        GmxTokenPrices memory gmxTokenPrices = _toGmxTokenPrices(pricesAndAddresses);
         
         (uint256 longTokenAmount, uint256 shortTokenAmount) = _getUnderlyingTokenDetails(market, gmxTokenPrices, pricesAndAddresses.longToken, pricesAndAddresses.shortToken);
         
@@ -171,11 +176,7 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
 
     function initiateGmxFeesBenchMark(address gmToken) external onlyWhitelistedLiquidators nonReentrant {
         UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGmxTokenPricesAndAddresses(gmToken);
-        GmxTokenPrices memory gmxTokenPrices = GmxTokenPrices({
-            gmTokenPrice: pricesAndAddresses.gmTokenPrice,
-            longTokenPrice: pricesAndAddresses.longTokenPrice,
-            shortTokenPrice: pricesAndAddresses.shortTokenPrice
-        });
+        GmxTokenPrices memory gmxTokenPrices = _toGmxTokenPrices(pricesAndAddresses);
         
         (uint256 longTokenAmount, uint256 shortTokenAmount) = _getUnderlyingTokenDetails(gmToken, gmxTokenPrices, pricesAndAddresses.longToken, pricesAndAddresses.shortToken);
         
@@ -209,7 +210,7 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
         internal
         nonReentrant
         noBorrowInTheSameBlock
-        onlyOwnerNoStaySolventOrInsolventPayable
+        onlyOwnerOrLiquidationWithNoSolvencyCheck
     {
         if (executionFee != msg.value) revert InvalidExecutionFee();
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
@@ -219,14 +220,11 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
             ? IERC20(gmToken).balanceOf(address(this))
             : gmAmount;
 
+        if (gmAmount == 0) revert ZeroWithdrawalAmount();
         if (_getAvailableBalancePayable(tokenManager.tokenAddressToSymbol(gmToken)) < gmAmount) revert InsufficientBalance();
         
         UnifiedGmxTokenPricesAndAddresses memory pricesAndAddresses = _getUnifiedGmxTokenPricesAndAddresses(gmToken);
-        GmxTokenPrices memory gmxTokenPrice = GmxTokenPrices({
-            gmTokenPrice: pricesAndAddresses.gmTokenPrice,
-            longTokenPrice: pricesAndAddresses.longTokenPrice,
-            shortTokenPrice: pricesAndAddresses.shortTokenPrice
-        });
+        GmxTokenPrices memory gmxTokenPrice = _toGmxTokenPrices(pricesAndAddresses);
         
         {
             DiamondStorageLib.GmxPositionBenchmark memory benchmark = DiamondStorageLib.getGmxPositionBenchmark(gmToken);
@@ -271,7 +269,7 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
                 minShortTokenAmount: minShortTokenAmount,
                 shouldUnwrapNativeToken: false,
                 executionFee: executionFee,
-                callbackGasLimit: 500000,
+                callbackGasLimit: 600000,
                 dataList: new bytes32[](0)
             })
         );
@@ -279,18 +277,24 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
         IERC20(gmToken).approve(getGmxV2Router(), gmAmount);
         BasicMulticall(getGmxV2ExchangeRouter()).multicall{value: msg.value}(data);
 
-        // Simulate solvency check with already fetched prices and addresses
-        if (msg.sender == DiamondStorageLib.contractOwner()) {
-            // Only owner can call this method or else it's liquidator when the account is already insolvent
-            if (!isWithinBounds(
-                (pricesAndAddresses.gmTokenPrice * gmAmount) /
-                    10 ** IERC20Metadata(gmToken).decimals(), // Deposit Amount In USD
-                (pricesAndAddresses.longTokenPrice * minLongTokenAmount) /
-                    10 ** IERC20Metadata(pricesAndAddresses.longToken).decimals() +
-                    (pricesAndAddresses.shortTokenPrice * minShortTokenAmount) /
-                    10 ** IERC20Metadata(pricesAndAddresses.shortToken).decimals()
-            )) revert InvalidMinOutputValue();
+        // Price-bounds validation (isWithinBounds) applies to ALL callers, including
+        // liquidators. A liquidator acting on an already-insolvent account is exempt from
+        // the solvency simulation below (so a genuinely-needed withdrawal isn't blocked),
+        // but there is no reason to let them supply out-of-bounds `minLong/minShort`
+        // amounts — that would allow quietly locking in a worse exit price.
+        if (!isWithinBounds(
+            (pricesAndAddresses.gmTokenPrice * gmAmount) /
+                10 ** IERC20Metadata(gmToken).decimals(), // Deposit Amount In USD
+            (pricesAndAddresses.longTokenPrice * minLongTokenAmount) /
+                10 ** IERC20Metadata(pricesAndAddresses.longToken).decimals() +
+                (pricesAndAddresses.shortTokenPrice * minShortTokenAmount) /
+                10 ** IERC20Metadata(pricesAndAddresses.shortToken).decimals()
+        )) revert InvalidMinOutputValue();
 
+        // Solvency simulation remains gated: whitelisted liquidators can withdraw from
+        // an insolvent account to unwind positions — requiring solvency here would revert
+        // the very path that's supposed to recover an insolvent PA.
+        if (!ISmartLoanLiquidationFacet(DeploymentConstants.getDiamondAddress()).isLiquidatorWhitelisted(msg.sender)) {
             uint256 receivedTokensWeightedUsdValue = (((pricesAndAddresses.longTokenPrice *
                 minLongTokenAmount *
                 tokenManager.tieredDebtCoverage(DiamondStorageLib.getPrimeLeverageTier(), pricesAndAddresses.longToken)) /
@@ -331,11 +335,6 @@ abstract contract GmxV2Facet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent, Gmx
             executionFee,
             block.timestamp
         );
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     event DepositInitiated(

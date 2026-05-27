@@ -2,7 +2,7 @@ import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
 import '@nomiclabs/hardhat-waffle'
 import "hardhat-watcher";
-import "@nomiclabs/hardhat-etherscan";
+import "@nomicfoundation/hardhat-verify";
 import "hardhat-contract-sizer";
 import "hardhat-interface-generator";
 import * as dotenv from 'dotenv';
@@ -39,7 +39,7 @@ export default {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {
-      forking: {
+      forking: process.env.NO_FORK ? undefined : {
         url: "https://arb1.arbitrum.io/rpc",
       },
       gas: 12000000,
@@ -124,12 +124,16 @@ export default {
       admin: 1
   },
   etherscan: {
-    apiKey: {
-      avalanche: process.env.SNOWTRACE_API_KEY,
-      base: process.env.BASE_API_KEY,
-      arbitrumOne: process.env.ARBISCAN_API_KEY
-    },
+    apiKey: process.env.ETHERSCAN_API_KEY,
     customChains: [
+      {
+        network: "avalanche",
+        chainId: 43114,
+        urls: {
+          apiURL: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan",
+          browserURL: "https://snowtrace.io",
+        },
+      },
       {
         network: "base",
         chainId: 8453,

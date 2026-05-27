@@ -5,7 +5,9 @@ import "./local/DeploymentConstants.sol";
 import "./DiamondStorageLib.sol";
 import "../interfaces/ITokenManager.sol";
 import {IGmxReader} from "../interfaces/gmx-v2/IGmxReader.sol";
-import "./SolvencyMethods.sol";
+import "./DiamondMethodsAccess.sol";
+import {GmxGlvUnifiedHelper} from "./GmxGlvUnifiedHelper.sol";
+import {GmxBenchmarkMath} from "./GmxBenchmarkMath.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "../interfaces/gmx-v2/EventUtils.sol";
@@ -14,19 +16,15 @@ import "../interfaces/gmx-v2/IWithdrawalUtils.sol";
 import "../interfaces/gmx-v2/IGmxV2Router.sol";
 import "../interfaces/gmx-v2/BasicMulticall.sol";
 
-abstract contract GmxV2FeesHelper is SolvencyMethods {
+abstract contract GmxV2FeesHelper is DiamondMethodsAccess, GmxGlvUnifiedHelper {
 
-    uint256 public constant FEE_PERCENTAGE = 1e17; // 10% (in 1e18 format)
+    /// @dev 10% performance fee (1e17 of 1e18). The shared fee math lives in
+    /// `GmxBenchmarkMath.deductibleFeeInGmTokens`; this constant is still read by
+    /// `_processFeeCollection` / `_getGmAnnualisedPerformance`, which apply the same
+    /// percentage to their own perf-USD calculations.
+    uint256 public constant FEE_PERCENTAGE = 1e17;
 
-    // Custom Errors
-    error InsufficientBalanceAfterFees();
-    error InsufficientBalance();
-    error InvalidMinOutputValue();
-    error ActionMayCauseInsolvency();
-    error GmxPlusMarketTokenNotFound();
-    error GmxMarketTokensNotFound();
-    error InvalidExecutionFee();
-    error MarketNotWhitelisted();
+    
 
 
     struct GmxPositionDetails {
@@ -40,15 +38,7 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         address shortTokenAddress;
     }
 
-    // Unified struct that works for both regular and Plus markets
-    struct UnifiedGmxTokenPricesAndAddresses {
-        uint256 gmTokenPrice;
-        uint256 longTokenPrice;
-        uint256 shortTokenPrice; // Always 0 for Plus markets
-        address longToken;
-        address shortToken; // Same as longToken for Plus markets
-        bool isPlusMarket;
-    }
+    
 
     struct FeeCalculationData {
         uint256 currentBalance;
@@ -64,12 +54,7 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         uint256 totalShortTokens;
     }
 
-    ///@notice GmxTokenPrices struct containing current prices of GM, long, and short tokens in USD (1e8 format)
-    struct GmxTokenPrices {
-        uint256 gmTokenPrice;
-        uint256 longTokenPrice;
-        uint256 shortTokenPrice;
-    }
+    
 
     // EVENTS
     event BenchmarkCreated(
@@ -160,11 +145,6 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         });
     }
 
-    // Backward compatibility function that returns only addresses
-    function _getMarketTokenAddresses(address gmMarket) internal view returns (address longToken, address shortToken) {
-        UnifiedGmxTokenPricesAndAddresses memory unified = _getUnifiedGmxTokenPricesAndAddresses(gmMarket);
-        return (unified.longToken, unified.shortToken);
-    }
 
     // Backward compatibility function that returns only prices
     function _getGmxTokenPrices(address gmMarket) internal view returns (GmxTokenPrices memory) {
@@ -186,9 +166,9 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         uint256 totalLongTokens = IERC20Metadata(longToken).balanceOf(gmMarket);
         uint256 totalShortTokens;
         if(tokenManager.isGmxPlusMarket(gmMarket)) {
-            ///@dev totalShortTokens set to zero for plus markets, which snowballs into shortTokenAmount being zero. 
+            ///@dev totalShortTokens set to zero for plus markets, which snowballs into shortTokenAmount being zero.
             ///@dev less code duplication this way: second addition in totalUnderlyingWorth calculation will also be zero
-            totalShortTokens = 0;   
+            totalShortTokens = 0;
         } else {
             totalShortTokens = IERC20Metadata(shortToken).balanceOf(gmMarket);
         }
@@ -200,14 +180,121 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         uint256 ratio = totalGmWorth * 1e18 / totalUnderlyingWorth;
 
         // Calculate this position's pro-rata share of the underlying tokens
-        longTokenAmount = ratio * gmTokenAmount / 1e18 * totalLongTokens / totalGmSupply;
-        shortTokenAmount = ratio * gmTokenAmount / 1e18 * totalShortTokens / totalGmSupply;
+        longTokenAmount = (ratio * gmTokenAmount * totalLongTokens) / (1e18 * totalGmSupply);
+        shortTokenAmount = (ratio * gmTokenAmount * totalShortTokens) / (1e18 * totalGmSupply);
     }
 
+    /**
+     * @notice Additively extend an existing benchmark with a new GM-token contribution
+     *         made through `AssetsOperationsFacet.fund()`.
+     * @dev Unlike `_createOrUpdatePositionBenchmark`, this does NOT recompute the benchmark
+     *      from the current total balance. Instead it preserves the existing cost basis and
+     *      layers on the newly-funded amount at its current market value.
+     *
+     *      Recomputing from the total balance would let a user holding a GM position with
+     *      unrealized gains call fund() with a dust amount of GM tokens and have the
+     *      benchmark rewritten to `totalBalance * currentPrice`, erasing the prior cost
+     *      basis and resetting performance fee accrual to zero.
+     *
+     * @param gmMarket  The GM market whose benchmark is being updated.
+     * @param positionDetails  Underlying token deltas attributable *only* to the newly-funded
+     *        amount, current prices, and token addresses. Underlying amounts MUST be computed
+     *        from the funded GM amount (not the total balance).
+     * @param fundedGmAmount  The GM-token amount just transferred into the PrimeAccount.
+     */
+    function _addToBenchmarkFromFunding(
+        address gmMarket,
+        GmxPositionDetails memory positionDetails,
+        uint256 fundedGmAmount
+    ) internal {
+        DiamondStorageLib.GmxPositionBenchmark memory existing = DiamondStorageLib.getGmxPositionBenchmark(gmMarket);
+        uint256 addedValueUsd = (fundedGmAmount * positionDetails.gmTokenPriceUsd) / 1e8;
+
+        if (!existing.exists) {
+            // First-time benchmark creation for this market. The funded amount IS the entire
+            // position, so creating a fresh benchmark sized to that amount is correct.
+            DiamondStorageLib.setGmxPositionBenchmark(
+                DiamondStorageLib.GmxPositionBenchmarkParams({
+                    market: gmMarket,
+                    benchmarkValueUsd: addedValueUsd,
+                    longTokenAmount: positionDetails.underlyingLongTokenAmount,
+                    shortTokenAmount: positionDetails.underlyingShortTokenAmount,
+                    longToken: positionDetails.longTokenAddress,
+                    shortToken: positionDetails.shortTokenAddress,
+                    timestamp: block.timestamp,
+                    gmTokenPriceUsd: positionDetails.gmTokenPriceUsd,
+                    longTokenPriceUsd: positionDetails.longTokenPriceUsd,
+                    shortTokenPriceUsd: positionDetails.shortTokenPriceUsd
+                })
+            );
+            emit BenchmarkCreated(
+                gmMarket,
+                addedValueUsd,
+                positionDetails.underlyingLongTokenAmount,
+                positionDetails.underlyingShortTokenAmount,
+                positionDetails.longTokenAddress,
+                positionDetails.shortTokenAddress,
+                positionDetails.gmTokenPriceUsd,
+                positionDetails.longTokenPriceUsd,
+                positionDetails.shortTokenPriceUsd,
+                block.timestamp
+            );
+            return;
+        }
+
+        // Preserve existing cost basis. Total benchmark = prior benchmark + funded delta at current price.
+        DiamondStorageLib.setGmxPositionBenchmark(
+            DiamondStorageLib.GmxPositionBenchmarkParams({
+                market: gmMarket,
+                benchmarkValueUsd: existing.benchmarkValueUsd + addedValueUsd,
+                longTokenAmount: existing.underlyingLongTokenAmount + positionDetails.underlyingLongTokenAmount,
+                shortTokenAmount: existing.underlyingShortTokenAmount + positionDetails.underlyingShortTokenAmount,
+                longToken: positionDetails.longTokenAddress,
+                shortToken: positionDetails.shortTokenAddress,
+                timestamp: block.timestamp,
+                gmTokenPriceUsd: positionDetails.gmTokenPriceUsd,
+                longTokenPriceUsd: positionDetails.longTokenPriceUsd,
+                shortTokenPriceUsd: positionDetails.shortTokenPriceUsd
+            })
+        );
+        emit BenchmarkUpdated(
+            gmMarket,
+            existing.benchmarkValueUsd + addedValueUsd,
+            existing.underlyingLongTokenAmount + positionDetails.underlyingLongTokenAmount,
+            existing.underlyingShortTokenAmount + positionDetails.underlyingShortTokenAmount,
+            positionDetails.gmTokenPriceUsd,
+            positionDetails.longTokenPriceUsd,
+            positionDetails.shortTokenPriceUsd,
+            block.timestamp
+        );
+    }
+
+    /**
+     * @notice Overwrites the benchmark for `gmMarket` to the PA's current balance valued at
+     *         the supplied prices. Used by:
+     *           - `GmxV2Facet._updatePositionBenchmark` / `GmxV2PlusFacet._updatePositionBenchmark`
+     *             (standalone sweepFeesAndUpdateBenchMark* paths + GMX
+     *             afterDepositExecution/afterWithdrawalExecution keeper callbacks);
+     *           - `GlvFacet._updateGlvPositionBenchmark` (GLV equivalent);
+     *           - `_updateBenchmark` (WithdrawalIntentFacet post-execution path).
+     *
+     * @dev    Overwrite semantics are safe on these paths — they cannot be used to reset a
+     *         benchmark to current price and bypass the fee — because of the ordering of
+     *         `_deposit` / `_withdraw`:
+     *           1. The entrypoint calls `_sweepFees(...)` BEFORE the `BasicMulticall` that
+     *              triggers GMX execution.
+     *           2. The GMX router accepts the request; the GMX keeper executes it some
+     *              blocks later.
+     *           3. The keeper-triggered `afterDepositExecution` / `afterWithdrawalExecution`
+     *              callback fires and overwrites the benchmark here.
+     *         The fee is already swept in step 1, before the overwrite in step 3. Same
+     *         shape for GmxV2Plus and Glv. The additive (non-overwrite) update is only
+     *         needed on the `fund()` path, which has no preceding sweep.
+     */
     function _createOrUpdatePositionBenchmark(address gmMarket, GmxPositionDetails memory positionDetails) internal {
         uint256 currentBalance = IERC20(gmMarket).balanceOf(address(this));
-        uint256 benchmarkValueUsd = (currentBalance * positionDetails.gmTokenPriceUsd) / 1e8; 
-        
+        uint256 benchmarkValueUsd = (currentBalance * positionDetails.gmTokenPriceUsd) / 1e8;
+
         DiamondStorageLib.GmxPositionBenchmark memory existingBenchmark = DiamondStorageLib.getGmxPositionBenchmark(gmMarket);
         bool isCreation = !existingBenchmark.exists;
         
@@ -260,22 +347,34 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         uint256 shortTokenPrice
     ) internal {
         DiamondStorageLib.GmxPositionBenchmark memory benchmark = DiamondStorageLib.getGmxPositionBenchmark(gmMarket);
-        TokenSupplyData memory supplyData;
-        supplyData.totalGmSupply = IERC20(gmMarket).totalSupply();
-        supplyData.totalLongTokens = IERC20(benchmark.longTokenAddress).balanceOf(gmMarket);
-        supplyData.totalShortTokens = IERC20(benchmark.shortTokenAddress).balanceOf(gmMarket);
-        
+
         // Check for zero supply to avoid division by zero
-        if (supplyData.totalGmSupply == 0) {
+        if (IERC20(gmMarket).totalSupply() == 0) {
             return;
         }
-        
+
         uint256 currentBalance = IERC20(gmMarket).balanceOf(address(this));
         uint256 benchmarkValueUsd = (currentBalance * gmTokenPriceUsd) / 1e8; // currentBalance in 1e18 format
-        
-        uint256 newUnderlyingLongTokenAmount = (currentBalance * supplyData.totalLongTokens) / supplyData.totalGmSupply;
-        uint256 newUnderlyingShortTokenAmount = (currentBalance * supplyData.totalShortTokens) / supplyData.totalGmSupply;
-        
+
+        // Use the premium-scaled pro-rata formula (`_getUnderlyingTokenDetails`) so the
+        // benchmark matches the invariant `underlyingAmt * underlyingPrice ==
+        // currentBalance * gmPrice` — the same form `_updatePositionBenchmark` and
+        // `_updateGlvPositionBenchmark` already use. A strict pro-rata would leave
+        // `performance > 0` immediately after this runs, so the next sweep would re-charge
+        // a fee on the GM premium. Only caller is
+        // `WithdrawalIntentFacet.executeWithdrawalIntent` (GMX markets only).
+        (uint256 newUnderlyingLongTokenAmount, uint256 newUnderlyingShortTokenAmount) =
+            _getUnderlyingTokenDetails(
+                gmMarket,
+                GmxTokenPrices({
+                    gmTokenPrice: gmTokenPriceUsd,
+                    longTokenPrice: longTokenPrice,
+                    shortTokenPrice: shortTokenPrice
+                }),
+                benchmark.longTokenAddress,
+                benchmark.shortTokenAddress
+            );
+
         DiamondStorageLib.setGmxPositionBenchmark(
             DiamondStorageLib.GmxPositionBenchmarkParams({
                 market: gmMarket,
@@ -376,43 +475,17 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         gmAnnualPerformance = (gmPerformanceUsd * 1e18 * 365 days) / timeElapsed / currentValueUsd;
     }
 
+    /// @notice Returns the deductible GMX V2 performance fee for the calling facet's GM
+    ///         position, denominated in GM tokens. Delegates to `GmxBenchmarkMath` so this
+    ///         entrypoint and `SolvencyFacetProd`'s solvency-side fee deduction share a
+    ///         single source of truth.
     function _getDeductibleFeesInGmTokens(address gmMarket, uint256 gmTokenPriceUsd, uint256 longTokenPriceUsd, uint256 shortTokenPriceUsd) internal view returns (uint256 feeInGmTokens) {
-        DiamondStorageLib.GmxPositionBenchmark memory benchmark = DiamondStorageLib.getGmxPositionBenchmark(gmMarket);
-
-        if (!benchmark.exists || gmTokenPriceUsd == 0) {
-            return 0;
-        }
-         
-        // Current balance and its USD value
-        uint256 currentBalance = IERC20(gmMarket).balanceOf(address(this));
-        uint256 currentValueUsd = (currentBalance * gmTokenPriceUsd) / 1e8; // currentBalance in 1e18 format
-
-        // Calculate USD values with proper decimal handling
-        uint256 longTokenValueUsd = _calculateTokenValueUsd(
-            benchmark.underlyingLongTokenAmount, 
-            longTokenPriceUsd, 
-            benchmark.longTokenAddress
+        feeInGmTokens = GmxBenchmarkMath.deductibleFeeInGmTokens(
+            gmMarket,
+            gmTokenPriceUsd,
+            longTokenPriceUsd,
+            shortTokenPriceUsd
         );
-        uint256 shortTokenValueUsd = _calculateTokenValueUsd(
-            benchmark.underlyingShortTokenAmount, 
-            shortTokenPriceUsd, 
-            benchmark.shortTokenAddress
-        );
-        
-        uint256 totalUnderlyingValueUsd = longTokenValueUsd + shortTokenValueUsd;
-        
-        // Check for negative performance (no underflow)
-        if (currentValueUsd <= totalUnderlyingValueUsd) {
-            return 0;
-        }
-
-        uint256 gmPerformanceUsd = currentValueUsd - totalUnderlyingValueUsd;
-
-        if (gmPerformanceUsd > 0) {
-            uint256 gmPerformanceFeeUsd = (gmPerformanceUsd * FEE_PERCENTAGE) / 1e18;
-            // Convert fee in USD back to GM tokens
-            feeInGmTokens = (gmPerformanceFeeUsd * 1e8) / gmTokenPriceUsd;
-        }
     }
 
     /**
@@ -489,21 +562,21 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
         DiamondStorageLib.GmxPositionBenchmark memory benchmark
     ) private returns (uint256 feeInGmTokens) {
         uint256 gmPerformanceFeeUsd = (feeData.gmPerformanceUsd * FEE_PERCENTAGE) / 1e18;
-        
+
         if (gmPerformanceFeeUsd == 0) {
             return 0;
         }
-        
+
         feeInGmTokens = (gmPerformanceFeeUsd * 1e8) / gmTokenPriceUsd;
-        
+
         // Only process fees if amount is >= 3 wei (to allow proper 1/3, 2/3 split)
         if (feeInGmTokens >= 3 && feeInGmTokens <= feeData.currentBalance) {
             uint256 stabilityPoolFee = feeInGmTokens / 3;
             uint256 treasuryFee = feeInGmTokens - stabilityPoolFee;
-            
+
             IERC20(gmMarket).transfer(DeploymentConstants.getStabilityPoolAddress(), stabilityPoolFee);
             IERC20(gmMarket).transfer(DeploymentConstants.getTreasuryAddress(), treasuryFee);
-            
+
             emit FeesCollected(
                 gmMarket,
                 feeInGmTokens,
@@ -511,6 +584,15 @@ abstract contract GmxV2FeesHelper is SolvencyMethods {
                 feeData.currentBalance,
                 block.timestamp
             );
+
+            // The benchmark must be scaled proportionally to the GM tokens just swept out,
+            // otherwise the next fee calc reports the same gain and charges the fee again.
+            // Every `_sweepFees` caller EXCEPT `AssetsOperationsFacet.fund()` immediately
+            // overwrites the benchmark (`_updatePositionBenchmark` /
+            // `_updateGlvPositionBenchmark` / GMX callback), making in-place scaling here a
+            // no-op for them. The additive fund() flow is the only one that doesn't
+            // overwrite, so it performs the scaling itself after `_sweepFees` returns —
+            // kept out of this private function to keep inheritors under the 24 KB limit.
         } else {
             // If feeInGmTokens < 3, we can't split properly, so return 0
             feeInGmTokens = 0;

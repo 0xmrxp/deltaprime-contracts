@@ -1,0 +1,338 @@
+{
+  "timestamp": "2025-11-18T13:53:30.482Z",
+  "diamondAddress": "0x968f944e9c43FC8AD80F6C1629F10570a46e2651",
+  "operations": [
+    {
+      "facetName": "GlvFacetArbitrum",
+      "type": "REPLACE",
+      "selectors": [
+        "0x4d5f3d74",
+        "0xd6cd4270",
+        "0x728ab4d9",
+        "0x35a38656",
+        "0x058fd69c",
+        "0x21269f0a",
+        "0x6b62a49a"
+      ],
+      "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3",
+      "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+      "functionNames": [
+        "depositWethUsdcGlv",
+        "withdrawWethUsdcGlv",
+        "initiateGlvFeesBenchMark",
+        "sweepFeesAndUpdateGlvBenchMark",
+        "getGlvPerformance",
+        "depositBtcUsdcGlv",
+        "withdrawBtcUsdcGlv"
+      ],
+      "replacementDetails": [
+        {
+          "selector": "0x4d5f3d74",
+          "functionName": "depositWethUsdcGlv",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0xd6cd4270",
+          "functionName": "withdrawWethUsdcGlv",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0x728ab4d9",
+          "functionName": "initiateGlvFeesBenchMark",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0x35a38656",
+          "functionName": "sweepFeesAndUpdateGlvBenchMark",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0x058fd69c",
+          "functionName": "getGlvPerformance",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0x21269f0a",
+          "functionName": "depositBtcUsdcGlv",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        },
+        {
+          "selector": "0x6b62a49a",
+          "functionName": "withdrawBtcUsdcGlv",
+          "previousAddress": "0xdBa4CD21fda19D64b0dec5915F091FF934d4c8E3",
+          "newAddress": "0x11847eE581f524C29a54541A9D91587B941D22f3"
+        }
+      ]
+    },
+    {
+      "facetName": "GmxV2FacetArbitrum",
+      "type": "REPLACE",
+      "selectors": [
+        "0x82fac504",
+        "0x029e5901",
+        "0xa97526c9",
+        "0x8f6c4ee2",
+        "0x0d5723dc",
+        "0xa189c386",
+        "0x3161805f",
+        "0xcb95294f",
+        "0x1eafb555",
+        "0x81bb5ad2",
+        "0xd76f883a",
+        "0xd9afe7f6",
+        "0x5251cdb1",
+        "0xe8218584",
+        "0x183b563d",
+        "0xb713427a",
+        "0xecee4863",
+        "0x1206498a",
+        "0x5d5d5a53",
+        "0x3e0055a3",
+        "0x0c2fa73e",
+        "0x643e2cd5",
+        "0x07ef7819"
+      ],
+      "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8",
+      "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+      "functionNames": [
+        "depositArbUsdcGmxV2",
+        "depositAtomUsdcGmxV2",
+        "depositBtcUsdcGmxV2",
+        "depositEthUsdcGmxV2",
+        "depositGmxUsdcGmxV2",
+        "depositLinkUsdcGmxV2",
+        "depositNearUsdcGmxV2",
+        "depositSeiUsdcGmxV2",
+        "depositSolUsdcGmxV2",
+        "depositSuiUsdcGmxV2",
+        "depositUniUsdcGmxV2",
+        "getGmPerformance",
+        "withdrawArbUsdcGmxV2",
+        "withdrawAtomUsdcGmxV2",
+        "withdrawBtcUsdcGmxV2",
+        "withdrawEthUsdcGmxV2",
+        "withdrawGmxUsdcGmxV2",
+        "withdrawLinkUsdcGmxV2",
+        "withdrawNearUsdcGmxV2",
+        "withdrawSeiUsdcGmxV2",
+        "withdrawSolUsdcGmxV2",
+        "withdrawSuiUsdcGmxV2",
+        "withdrawUniUsdcGmxV2"
+      ],
+      "replacementDetails": [
+        {
+          "selector": "0x82fac504",
+          "functionName": "depositArbUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x029e5901",
+          "functionName": "depositAtomUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xa97526c9",
+          "functionName": "depositBtcUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x8f6c4ee2",
+          "functionName": "depositEthUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x0d5723dc",
+          "functionName": "depositGmxUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xa189c386",
+          "functionName": "depositLinkUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x3161805f",
+          "functionName": "depositNearUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xcb95294f",
+          "functionName": "depositSeiUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x1eafb555",
+          "functionName": "depositSolUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x81bb5ad2",
+          "functionName": "depositSuiUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xd76f883a",
+          "functionName": "depositUniUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xd9afe7f6",
+          "functionName": "getGmPerformance",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x5251cdb1",
+          "functionName": "withdrawArbUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xe8218584",
+          "functionName": "withdrawAtomUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x183b563d",
+          "functionName": "withdrawBtcUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xb713427a",
+          "functionName": "withdrawEthUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0xecee4863",
+          "functionName": "withdrawGmxUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x1206498a",
+          "functionName": "withdrawLinkUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x5d5d5a53",
+          "functionName": "withdrawNearUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x3e0055a3",
+          "functionName": "withdrawSeiUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x0c2fa73e",
+          "functionName": "withdrawSolUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x643e2cd5",
+          "functionName": "withdrawSuiUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        },
+        {
+          "selector": "0x07ef7819",
+          "functionName": "withdrawUniUsdcGmxV2",
+          "previousAddress": "0x4c07BF37a48Dc4b61dD59e632dc2fC6EF7AaC8f1",
+          "newAddress": "0x6c2df7892BD5Af7CD9B739E262a504C9De921AC8"
+        }
+      ]
+    },
+    {
+      "facetName": "GmxV2PlusFacetArbitrum",
+      "type": "REPLACE",
+      "selectors": [
+        "0x213d0e5a",
+        "0x89e02241",
+        "0xbc495354",
+        "0x38aba4d6",
+        "0xc286726c",
+        "0xc02ac742",
+        "0x5832b43a"
+      ],
+      "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173",
+      "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+      "functionNames": [
+        "depositBtcGmxV2Plus",
+        "depositEthGmxV2Plus",
+        "depositGmxGmxV2Plus",
+        "getGmPlusPerformance",
+        "withdrawBtcGmxV2Plus",
+        "withdrawEthGmxV2Plus",
+        "withdrawGmxGmxV2Plus"
+      ],
+      "replacementDetails": [
+        {
+          "selector": "0x213d0e5a",
+          "functionName": "depositBtcGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0x89e02241",
+          "functionName": "depositEthGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0xbc495354",
+          "functionName": "depositGmxGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0x38aba4d6",
+          "functionName": "getGmPlusPerformance",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0xc286726c",
+          "functionName": "withdrawBtcGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0xc02ac742",
+          "functionName": "withdrawEthGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        },
+        {
+          "selector": "0x5832b43a",
+          "functionName": "withdrawGmxGmxV2Plus",
+          "previousAddress": "0x52c4fbA5b34Cc86A808948A28a61b60334d8Ba02",
+          "newAddress": "0xbCfBEb8Ef1491110E6C82470C878aA6511B76173"
+        }
+      ]
+    }
+  ]
+}

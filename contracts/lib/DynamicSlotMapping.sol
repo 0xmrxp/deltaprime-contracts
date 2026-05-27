@@ -47,4 +47,15 @@ library DynamicSlotMapping {
         bytes32 loc = keccak256(abi.encode(key, slot));
         assembly { sstore(loc, value) }
     }
+
+    // ----- address key, address value -----
+    function getAddress(bytes32 slot, address key) internal view returns (address value) {
+        bytes32 loc = keccak256(abi.encode(key, slot));
+        assembly { value := sload(loc) }
+    }
+
+    function setAddress(bytes32 slot, address key, address value) internal {
+        bytes32 loc = keccak256(abi.encode(key, slot));
+        assembly { sstore(loc, value) }
+    }
 }

@@ -2,7 +2,8 @@
 pragma solidity 0.8.17;
 
 import "../../ReentrancyGuardKeccak.sol";
-import "../../OnlyOwnerOrInsolvent.sol";
+import "../../lib/DiamondMethodsAccess.sol";
+import "../../PrimeAccountModifiers.sol";
 import {DiamondStorageLib} from "../../lib/DiamondStorageLib.sol";
 import "../../interfaces/facets/avalanche/IWombatPool.sol";
 import "../../interfaces/facets/avalanche/IWombatMaster.sol";
@@ -12,7 +13,7 @@ import "../../interfaces/IStakingPositions.sol";
 import "../../interfaces/IWrappedNativeToken.sol";
 import "../../lib/local/DeploymentConstants.sol";
 
-contract WombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
+contract WombatFacet is ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     using TransferHelper for address;
 
     // Protocol addresses
@@ -424,7 +425,7 @@ contract WombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         address pool,
         uint256 amount,
         uint256 minOut
-    ) internal onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
+    ) internal onlyOwnerOrLiquidation nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
         TokensDetails memory tokensDetails;
         tokensDetails.fromToken = getERC20TokenInstance(fromAsset, false);
         tokensDetails.toToken = getERC20TokenInstance(toAsset, false);
@@ -519,7 +520,7 @@ contract WombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         address pool,
         uint256 amount,
         uint256 minOut
-    ) internal onlyOwnerOrInsolvent nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
+    ) internal onlyOwnerOrLiquidation nonReentrant noBorrowInTheSameBlock returns (uint256 amountOut) {
         TokensDetailsWithNative memory tokensDetailsWithNative;
         tokensDetailsWithNative.fromToken = getERC20TokenInstance(fromAsset, false);
         tokensDetailsWithNative.lpToken = getERC20TokenInstance(lpAsset, false);
@@ -803,11 +804,6 @@ contract WombatFacet is ReentrancyGuardKeccak, OnlyOwnerOrInsolvent {
         IWombatMaster.UserInfo memory userInfo = IWombatMaster(WOMBAT_MASTER)
             .userInfo(pid, address(this));
         return userInfo.amount;
-    }
-
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 
     receive() external payable {}

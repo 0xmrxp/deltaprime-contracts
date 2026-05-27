@@ -8,12 +8,13 @@ import "../interfaces/ITokenManager.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "../ReentrancyGuardKeccak.sol";
-import "../lib/SolvencyMethods.sol";
+import "../lib/DiamondMethodsAccess.sol";
+import "../PrimeAccountModifiers.sol";
 
 //this path is updated during deployment
 import "../lib/local/DeploymentConstants.sol";
 
-contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, SolvencyMethods {
+contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, DiamondMethodsAccess, PrimeAccountModifiers {
     
     using TransferHelper for address;
 
@@ -31,7 +32,7 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
     * @dev Requires approval for ERC20 token on frontend side
     * @param _amount to be funded
     **/
-    function depositPrime( uint256 _amount) public virtual noBorrowInTheSameBlock  nonReentrant remainsSolvent {
+    function depositPrime( uint256 _amount) public virtual onlyOwner noBorrowInTheSameBlock  nonReentrant remainsSolvent {
 
         require(_amount > 0, "Amount must be > 0 to deposit PRIME");
         IERC20Metadata token = getERC20TokenInstance(bytes32("PRIME"), true);
@@ -145,12 +146,22 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         
         uint256 borrowedValue = _getDebt();
         uint256 remainingStake = currentStaked - amount;
-        
+
         if (getLeverageTier() != LeverageTierLib.LeverageTier.BASIC) {
             uint256 primeStakingRatio = tokenManager.tieredPrimeStakingRatio(LeverageTierLib.LeverageTier.PREMIUM);
-            uint256 requiredPrimeStakeAmount = borrowedValue * primeStakingRatio / (100 * 10 ** 18); 
+            uint256 requiredPrimeStakeAmount = borrowedValue * primeStakingRatio / (100 * 10 ** 18);
             require(remainingStake >= requiredPrimeStakeAmount, "Would fall below minimum stake requirement for PREMIUM tier");
         }
+
+        // A PREMIUM account with accrued PRIME debt must keep enough staked PRIME to cover
+        // that debt, otherwise an unstake could leave the protocol with a PRIME-debt that
+        // exceeds available stake even though the USD-denominated stake ratio is satisfied.
+        // Settle accrued-but-unsnapshotted debt into recordedPrimeDebt first; reading
+        // DiamondStorageLib.getPrimeDebt() directly would let a user time their unstake to
+        // bypass the check while accrual sits outside the recorded value.
+        LeverageTierLib.updatePrimeDebtSnapshot(borrowedValue);
+        uint256 currentPrimeDebt = LeverageTierLib.getCurrentPrimeDebt(borrowedValue);
+        require(remainingStake >= currentPrimeDebt, "Would fall below accrued PRIME debt");
         
         
         DiamondStorageLib.removeStakedTokenAmount(primeTokenAddress, amount);
@@ -167,7 +178,7 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
     }
 
      /**
-    * @notice A modified version of _syncExposure() method in SolvencyMethods which doesn't 
+    * @notice A modified version of _syncExposure() method in DiamondMethodsAccess which doesn't 
     * add PRIME as an owned asset for solvency calculations.
     * @param tokenManager tokenManager instance
     * @param _token to be funded
@@ -191,7 +202,8 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         require(_getAvailableBalance("PRIME") >= amount, "Not enough PRIME to repay the debt");
         ITokenManager tokenManager = DeploymentConstants.getTokenManager();
         address primeTokenAddress = tokenManager.getAssetAddress("PRIME", true);
-        
+        // to ensure no overpayment of debt, cap the amount to current debt if user tries to repay more than owed
+        amount = Math.min(amount, currentDebt);
         
         
         // Split: 50% burn, 50% to treasury
@@ -199,11 +211,11 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         uint256 treasuryAmount = amount - burnAmount;
 
 
-        IERC20(primeTokenAddress).transfer(BURN_ADDRESS, burnAmount);
+        primeTokenAddress.safeTransfer(BURN_ADDRESS, burnAmount);
         
        
         address treasuryAddress = DeploymentConstants.getTreasuryAddress();
-        IERC20(primeTokenAddress).transfer(treasuryAddress, treasuryAmount);
+        primeTokenAddress.safeTransfer(treasuryAddress, treasuryAmount);
         
         // Update debt (need to update the recorded debt, not just subtract from current)
         uint256 recordedDebt = DiamondStorageLib.getPrimeDebt();
@@ -267,14 +279,16 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         uint256 primeDebtRatio = tokenManager.tieredPrimeDebtRatio(currentTier);
         
         // Calculate weekly accrual at current borrow level
-        uint256 weeklyAccrualAtCurrentBorrow = (totalBorrowedValue * primeDebtRatio * 7 days) / (100 * 365 days);
+        /// @dev primeDebtRatio is in 18-decimal precision, must divide by 10**18 to normalize (matches LeverageTierLib.sol:L55)
+        uint256 weeklyAccrualAtCurrentBorrow = (totalBorrowedValue * primeDebtRatio * 7 days) / (100 * 365 days * 10 ** 18);
 
         uint256 primeDebt = DiamondStorageLib.getPrimeDebt();
 
         
         ///@dev rather than simply checking primeDebt > stakedPrime, the user gets a buffer of further accrual of another week
         ///@dev so could try and borrow more which would inherently trigger further staking from the PRIME balance
-        if (primeDebt - weeklyAccrualAtCurrentBorrow > stakedPrime) {
+        /// @dev equivalent to (primeDebt - weeklyAccrualAtCurrentBorrow > stakedPrime), but done this way to avoid underflow issues.
+        if (primeDebt > weeklyAccrualAtCurrentBorrow + stakedPrime) {
             return true;
         }
 
@@ -305,7 +319,14 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         DiamondStorageLib.setPrimeDebt(newDebt);
         
         DiamondStorageLib.removeStakedTokenAmount(primeTokenAddress, liquidatedAmount);
-        
+
+        // Transfer liquidated PRIME: 50% burn, 50% to treasury
+        uint256 burnAmount = liquidatedAmount / 2;
+        uint256 treasuryAmount = liquidatedAmount - burnAmount;
+        primeTokenAddress.safeTransfer(BURN_ADDRESS, burnAmount);
+        address treasuryAddress = DeploymentConstants.getTreasuryAddress();
+        primeTokenAddress.safeTransfer(treasuryAddress, treasuryAmount);
+
         // If remaining Prime can't cover remaining debt, force switch to BASIC
         uint256 remainingPrime = stakedPrime - liquidatedAmount;
         uint256 remainingDebt = LeverageTierLib.getCurrentPrimeDebt(_getDebt());
@@ -316,41 +337,5 @@ contract PrimeLeverageFacet is  IPrimeLeverageFacet,ReentrancyGuardKeccak, Solve
         }
         
         emit PrimeLiquidated(address(this), liquidatedAmount, block.timestamp);
-    }
-    
-    
-    /**
-     * @dev Internal pure function to check if address is whitelisted
-     * @param addr The address to check
-     * @return bool True if address is whitelisted, false otherwise
-     */
-    function _isWhitelisted(address addr) internal pure virtual returns (bool) {
-        if (addr == 0x79CB45A2F32546D7DEdE875eFa4faC8FC3A5B850) return true;
-        else if (addr == 0xC6ba6BB819f1Be84EFeB2E3f2697AD9818151e5D) return true;
-        else if (addr == 0x1dA11c0d0A08151bFF3e9BdcCE24Ab1075558132) return true;
-        else if (addr == 0xA6e26fb8a6155083EAc4ce6009933224a727DFFc) return true;
-        else if (addr == 0x57c948bC1CA8DdF7B70021722E860c82814527D8) return true;
-        else if (addr == 0xB3c1990C39E7b4CC4556CDd1B4F802A58f123DcE) return true;
-        else if (addr == 0xec5A44cEe773D04D0EFF4092B86838d5Cd77eC4E) return true;
-        else if (addr == 0xE0fE81A35cFC20c85Fc3013609b932AA708F7914) return true;
-        else if (addr == 0xE1804DF460cBeb866e90424eDA5c50c41488Ffd0) return true;
-        else if (addr == 0x7E2C435B8319213555598274FAc603c4020B94CB) return true;
-        else if (addr == 0x082D54C0015da6cC95F60F6194c8103F4a68921D) return true;
-        else if (addr == 0xc45E7444171308DC9E254Ab28182976FD219b199) return true;
-        else if (addr == 0x09BFA70ebF2D9c0A68E5e172025C57eeb29F96c5) return true;
-        else if (addr == 0x60deC93EDC9e9678267e695B8F894643bE968F2e) return true;
-        else if (addr == 0xA4f936C97410d366ed389B90A064cEE0688004aE) return true;
-        else if (addr == 0x0E5Bad4108a6A5a8b06820f98026a7f3A77466b2) return true;
-        else if (addr == 0xEb6c79b5339854aD3FA032d05000B00B94cc2E95) return true;
-
-        else return false;
-    }
-    
-    
-    // Modifiers
-    
-    modifier onlyOwner() {
-        DiamondStorageLib.enforceIsContractOwner();
-        _;
     }
 }

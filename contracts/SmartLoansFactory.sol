@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Last deployed from commit: dd5107fccb52b03325a440fcf9823a3b56ce81e1;
+// Last deployed from commit: 4cb220eca1e05e00499cd918ef66ea95efb8675d;
 pragma solidity 0.8.17;
 
 import "@redstone-finance/evm-connector/contracts/core/ProxyConnector.sol";
 import "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./SmartLoanDiamondBeacon.sol";
 import "./proxies/SmartLoanDiamondProxy.sol";
@@ -24,9 +23,42 @@ import "./interfaces/facets/ISmartLoanLiquidationFacet.sol";
  * It's also responsible for keeping track of the loans, ensuring one loan per wallet rule, ownership transfers proposals/execution and
  * authorizes registered loans to borrow from lending pools.
  */
-contract SmartLoansFactory is OwnableUpgradeable, IBorrowersRegistry, ProxyConnector, ReentrancyGuardUpgradeable {
+contract SmartLoansFactory is OwnableUpgradeable, IBorrowersRegistry, ProxyConnector {
     using TransferHelper for address;
     using TransferHelper for address payable;
+
+    /**
+     * @dev Reentrancy guard backed by a fixed keccak storage slot instead of
+     * inheritance from `ReentrancyGuardUpgradeable`. Because this contract
+     * sits behind a TransparentUpgradeableProxy with already-populated
+     * storage, adding a new upgradeable base would insert that base's slots
+     * (`_status` + `__gap[49]` = 50 slots for `ReentrancyGuardUpgradeable`)
+     * into the C3-linearized layout and shift every SmartLoansFactory state
+     * variable down by the same amount. A fixed keccak-derived slot keeps
+     * the inheritance list, and therefore the storage layout, byte-identical
+     * across upgrades. Semantics are otherwise identical to OZ's
+     * `ReentrancyGuard`.
+     */
+    bytes32 private constant _REENTRANCY_GUARD_SLOT =
+        keccak256("deltaprime.smartloansfactory.reentrancyguard.v1");
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
+    modifier nonReentrant() {
+        bytes32 slot = _REENTRANCY_GUARD_SLOT;
+        uint256 status;
+        assembly {
+            status := sload(slot)
+        }
+        require(status != _ENTERED, "ReentrancyGuard: reentrant call");
+        assembly {
+            sstore(slot, _ENTERED)
+        }
+        _;
+        assembly {
+            sstore(slot, _NOT_ENTERED)
+        }
+    }
 
     modifier hasNoLoan() {
         require(!_hasLoan(msg.sender), "Only one loan per owner is allowed");
@@ -55,6 +87,7 @@ contract SmartLoansFactory is OwnableUpgradeable, IBorrowersRegistry, ProxyConne
 
         require(oldOwner != address(0), "Only a SmartLoan can change it's owner");
         require(!_hasLoan(_newOwner), "New owner already has a loan");
+        require(_newOwner != oldOwner, "Cannot transfer ownership to the same owner");
 
         ownersToLoans[oldOwner] = address(0);
         ownersToLoans[_newOwner] = loan;
@@ -96,13 +129,13 @@ contract SmartLoansFactory is OwnableUpgradeable, IBorrowersRegistry, ProxyConne
         SmartLoanDiamondBeacon smartLoan = SmartLoanDiamondBeacon(payable(address(beaconProxy)));
         if (ISmartLoanLiquidationFacet(address(smartLoanDiamond)).isLiquidatorWhitelisted(msg.sender)) revert OwnerIsLiquidator();
 
+        //Update registry before any external token interaction (checks-effects-interactions)
+        updateRegistry(address(smartLoan), msg.sender);
+
         //Fund account with own funds and credit
         IERC20Metadata token = IERC20Metadata(asset);
         address(token).safeTransferFrom(msg.sender, address(this), _amount);
         address(token).safeApprove(address(smartLoan), _amount);
-
-        //Update registry and emit event
-        updateRegistry(address(smartLoan), msg.sender);
 
         (bool success, bytes memory result) = address(smartLoan).call(abi.encodeWithSelector(AssetsOperationsFacet.fund.selector, _fundedAsset, _amount));
         ProxyConnector._prepareReturnValue(success, result);

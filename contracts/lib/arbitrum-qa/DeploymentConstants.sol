@@ -36,6 +36,9 @@ library DeploymentConstants {
     
     address private constant _GMX_READER_ADDRESS = 0x65A6CC451BAfF7e7B4FDAb4157763aB4b6b44D0E;
 
+    address private constant _GLV_READER_ADDRESS = 0xb51e34dc3A7c80E4ABbC3800aD0e487b7b878339; // Arbitrum GLV Reader
+
+
     //implementation-specific
 
     function getPercentagePrecision() internal pure returns (uint256) {
@@ -84,6 +87,10 @@ library DeploymentConstants {
 
     function getStabilityPoolAddress() internal pure returns (address) {
         return _STABILITY_POOL_ADDREESS;
+    }
+
+    function getGlvReaderAddress() internal pure returns (address) {
+        return _GLV_READER_ADDRESS;
     }
 
     /**

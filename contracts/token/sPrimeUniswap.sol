@@ -19,6 +19,17 @@ import "@redstone-finance/evm-connector/contracts/core/ProxyConnector.sol";
 import "@redstone-finance/evm-connector/contracts/core/RedstoneConsumerNumericBase.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/utils/ERC721HolderUpgradeable.sol";
 
+/* ============================================================================
+ *                     DECOMMISSIONED CONTRACT - NOT IN USE
+ * ----------------------------------------------------------------------------
+ *  This contract has been DECOMMISSIONED and is no longer in use. It is kept
+ *  in the repository for reference only.
+ *
+ *  It was intentionally NOT migrated to the RedStone primary data service
+ *  ("redstone-primary-prod") during the May 2026 RedStone node migration and
+ *  still references the legacy per-chain data service. Do NOT deploy, extend,
+ *  or rely on this contract.
+ * ============================================================================ */
 // SPrime contract declaration
 contract sPrimeUniswap is
     ISPrimeUniswap,
